@@ -1,0 +1,19 @@
+{
+  "name": "civicloop",
+  "private": true,
+  "packageManager": "pnpm@9.0.0",
+  "scripts": {
+    "dev": "pnpm -r dev",
+    "dev:web": "pnpm --filter web dev",
+    "dev:api": "pnpm --filter api dev",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "format": "pnpm -r format || true"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}
+
+

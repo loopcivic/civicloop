@@ -1,0 +1,371 @@
+// =======================
+// GENERATOR
+// =======================
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+// =======================
+// DATASOURCE (Prisma 7)
+// =======================
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =======================
+// ENUMS
+// =======================
+enum Role {
+  CITIZEN
+  OFFICER
+  ADMIN
+}
+
+enum Category {
+  ROAD
+  WATER
+  GARBAGE
+  LIGHT
+  SEWAGE
+  OTHER
+}
+
+enum Status {
+  CREATED
+  ACKNOWLEDGED
+  ASSIGNED
+  INSPECTION
+  WORK_IN_PROGRESS
+  RESOLVED
+  VERIFIED
+  REOPENED
+}
+
+enum EventType {
+  CREATED
+  ACKNOWLEDGED
+  ASSIGNED
+  INSPECTION
+  WORK_STARTED
+  RESOLVED
+  VERIFIED
+  REOPENED
+  ESCALATED
+  DUPLICATE_FLAGGED
+  DUPLICATE_LINKED
+  UPVOTED
+}
+
+enum MediaKind {
+  PHOTO
+  VIDEO
+}
+
+enum Vote {
+  CONFIRMED
+  NOT_FIXED
+}
+
+enum SignalType {
+  UPVOTE
+  STILL_PRESENT
+}
+
+enum EntityType {
+  WARD
+  OFFICER
+  DEPARTMENT
+}
+
+// =======================
+// MODELS
+// =======================
+//model User {
+//  id        String   @id @default(uuid())
+//  phone     String?  @unique
+//  email     String?  @unique
+//  name      String?
+//  role      Role     @default(CITIZEN)
+//  password String ?
+//  
+
+//  createdAt DateTime @default(now())
+
+//  complaints      Complaint[]       @relation("UserComplaints")
+//  validations     Validation[]
+//  officer         Officer?
+//  ComplaintSignal ComplaintSignal[]
+//  assignedComplaints Complaint[] @relation("OfficerAssignments")
+//}
+
+model User {
+  id        String   @id @default(uuid())
+  phone     String?  @unique
+  email     String?  @unique
+  name      String?
+  role      Role     @default(CITIZEN)
+  password  String?
+
+  isActive  Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+
+  // ✅ NEW: Officer Details (Nullable, so it doesn't break Citizens)
+  wardId       String?
+  departmentId String?
+
+  // ✅ NEW: Direct Relations to Ward & Dept
+  ward         Ward?       @relation(fields: [wardId], references: [id])
+  department   Department? @relation(fields: [departmentId], references: [id])
+
+  // Existing Relations
+  complaints          Complaint[]       @relation("UserComplaints")
+  validations         Validation[]
+  
+  // 🔴 COMMENT THIS OUT (We are replacing the Officer table)
+  // officer          Officer?
+
+  ComplaintSignal     ComplaintSignal[]
+  
+  // ✅ This is the critical link for your new Assignment logic
+  assignedComplaints  Complaint[]       @relation("OfficerAssignments")
+}
+model VerificationToken {
+  id         String   @id @default(uuid())
+  identifier String   // This will store either the email OR the phone number
+  token      String   // The 6-digit OTP
+  expiresAt  DateTime // When the OTP expires (e.g., 5 mins from creation)
+  createdAt  DateTime @default(now())
+
+  @@unique([identifier, token]) // Ensures we can look up the exact OTP for the identifier
+}
+model Department {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  createdAt DateTime @default(now())
+
+  officers   User[]
+  slas       SLA[]
+  complaints Complaint[] // ✅ ADD THIS LINE
+}
+
+model Ward {
+  id        String   @id @default(uuid())
+  cityCode  String
+  name      String
+  createdAt DateTime @default(now())
+
+  officers   User[]
+  complaints Complaint[]
+}
+
+//model Officer {
+//  id     String @id @default(uuid())
+//  userId String @unique
+//  user   User   @relation(fields: [userId], references: [id])
+
+//  departmentId String
+//  department   Department @relation(fields: [departmentId], references: [id])
+
+//  wardId String
+//  ward   Ward   @relation(fields: [wardId], references: [id])
+
+//  createdAt DateTime    @default(now())
+//  Complaint Complaint[]
+//}
+
+
+
+//model Complaint {
+//  id String @id @default(uuid())
+
+//  createdById String
+//  createdBy   User   @relation("UserComplaints", fields: [createdById], references: [id])
+
+//  title       String
+//  description String?
+//  category    Category
+
+//  departmentId String
+//  department   Department @relation(fields: [departmentId], references: [id])
+
+//  wardId String
+//  ward   Ward   @relation(fields: [wardId], references: [id])
+
+//  lat          Float
+//  lng          Float
+//  locationText String?
+
+//  createdAt DateTime @default(now())
+
+//  // cached for list queries (truth comes from events)
+//  currentStatus Status @default(CREATED)
+
+//  events      ComplaintEvent[]
+//  media       Media[]
+//  validations Validation[]
+
+//  @@index([wardId, createdAt])
+//  @@index([departmentId, createdAt])
+//}
+
+model Complaint {
+  id          String @id @default(uuid())
+  createdById String
+  createdBy   User   @relation("UserComplaints", fields: [createdById], references: [id])
+
+  title       String
+  description String?
+  category    Category
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  wardId String
+  ward   Ward   @relation(fields: [wardId], references: [id])
+
+  // ✅ NEW: assigned officer (optional until ACK)
+  assignedOfficerId String?
+  //assignedOfficer   Officer? @relation(fields: [assignedOfficerId], references: [id])
+  assignedOfficer   User?   @relation("OfficerAssignments", fields: [assignedOfficerId], references: [id])
+
+  // ✅ NEW: duplicates link to canonical complaint
+  duplicateOfId String?
+  duplicateOf   Complaint?  @relation("DuplicateLink", fields: [duplicateOfId], references: [id])
+  duplicates    Complaint[] @relation("DuplicateLink")
+
+  lat          Float
+  lng          Float
+  locationText String?
+
+  createdAt     DateTime @default(now())
+  currentStatus Status   @default(CREATED)
+
+  events      ComplaintEvent[]
+  media       Media[]
+  validations Validation[]
+  signals     ComplaintSignal[]
+
+  @@index([wardId, createdAt])
+  @@index([departmentId, createdAt])
+  @@index([assignedOfficerId, createdAt])
+  @@index([duplicateOfId])
+}
+
+model ComplaintSignal {
+  id          String    @id @default(uuid())
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  type      SignalType
+  createdAt DateTime   @default(now())
+
+  @@unique([complaintId, userId, type])
+  @@index([complaintId, createdAt])
+}
+
+model ComplaintEvent {
+  id          String    @id @default(uuid())
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+
+  type        EventType
+  actorUserId String?
+  actorRole   Role?
+
+  data      Json
+  createdAt DateTime @default(now())
+
+  prevHash String?
+  hash     String  @unique
+
+  @@index([complaintId, createdAt])
+}
+
+model Media {
+  id          String    @id @default(uuid())
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+
+  eventId String?
+  url     String
+  kind    MediaKind
+  sha256  String
+
+  lat Float?
+  lng Float?
+
+  createdAt DateTime @default(now())
+
+  @@index([complaintId, createdAt])
+}
+
+model SLA {
+  id       String   @id @default(uuid())
+  category Category
+
+  departmentId String
+  department   Department @relation(fields: [departmentId], references: [id])
+
+  ackHours     Int
+  resolveHours Int
+
+  @@unique([category, departmentId])
+}
+
+model Validation {
+  id String @id @default(uuid())
+
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  vote     Vote
+  note     String?
+  mediaUrl String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([complaintId, userId])
+}
+
+model PerformanceSnapshot {
+  id          String     @id @default(uuid())
+  entityType  EntityType
+  entityId    String
+  periodMonth DateTime // store first day of month
+
+  totalIssues    Int
+  ackP50Min      Int
+  ackP95Min      Int
+  resolveP50Min  Int
+  resolveP95Min  Int
+  resolutionRate Int // 0..100
+  slaBreachRate  Int // 0..100
+
+  createdAt DateTime @default(now())
+
+  @@unique([entityType, entityId, periodMonth])
+  @@index([entityType, periodMonth])
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  phone     String
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+  @@index([phone, expiresAt])
+}
+
