@@ -365,10 +365,10 @@
 //     });
 
 //     if (!user) throw new NotFoundException('User not found');
-    
+
 //     // Safety: Remove password
 //     (user as any).password = undefined;
-    
+
 //     return user;
 //   }
 //  @Post('logout')
@@ -378,7 +378,7 @@
 //       httpOnly: true,
 //       path: '/', // Important: Must match the path used when creating it
 //     });
-    
+
 //     return { message: 'Logged out successfully' };
 //   }
 
@@ -396,7 +396,7 @@ export class Auth2Controller {
   constructor(private auth: Auth2Service, private prisma: PrismaService) { }
 
   // --- ✅ UPDATED CITIZEN ENDPOINTS ---
-  
+
   @Post('/request-otp')
   request(@Body() body: { identifier?: string; phone?: string }) {
     // Check identifier first, fallback to phone for backward compatibility with frontend
@@ -412,21 +412,39 @@ export class Auth2Controller {
 
     const out = await this.auth.verifyOtp(target, body.code);
 
+    // res.cookie('civic_session', out.token, {
+    //   httpOnly: true, secure: false, sameSite: 'lax', path: '/', maxAge: 7 * 24 * 3600_000
+    // });
+    const isProd = process.env.NODE_ENV === 'production';
+
     res.cookie('civic_session', out.token, {
-      httpOnly: true, secure: false, sameSite: 'lax', path: '/', maxAge: 7 * 24 * 3600_000
+      httpOnly: true,
+      secure: isProd,                     // must be true in production
+      sameSite: isProd ? 'none' : 'lax',  // required for cross-site
+      path: '/',
+      maxAge: 7 * 24 * 3600_000,
     });
 
     return { ok: true, user: out.user, token: out.token };
   }
 
   // --- 👮‍♂️ EXISTING STAFF ENDPOINTS (Untouched) ---
-  
+
   @Post('/login-staff')
   async loginStaff(@Body() body: any, @Res({ passthrough: true }) res: Response) {
     const out = await this.auth.loginStaff(body.email, body.password);
 
+    // res.cookie('civic_session', out.token, {
+    //   httpOnly: true, secure: false, sameSite: 'lax', path: '/', maxAge: 7 * 24 * 3600_000
+    // });
+    const isProd = process.env.NODE_ENV === 'production';
+
     res.cookie('civic_session', out.token, {
-      httpOnly: true, secure: false, sameSite: 'lax', path: '/', maxAge: 7 * 24 * 3600_000
+      httpOnly: true,
+      secure: isProd,                     // must be true in production
+      sameSite: isProd ? 'none' : 'lax',  // required for cross-site
+      path: '/',
+      maxAge: 7 * 24 * 3600_000,
     });
 
     return { ok: true, token: out.token, role: out.role };
@@ -525,7 +543,7 @@ export class Auth2Controller {
 
     if (!user) throw new NotFoundException('User not found');
     (user as any).password = undefined;
-    
+
     return user;
   }
 
@@ -535,7 +553,7 @@ export class Auth2Controller {
   @Patch('profile')
   async updateProfile(@Req() req: any, @Body() body: { name?: string; email?: string; phone?: string }) {
     const userId = req.user.sub || req.user.userId || req.user.id;
-    
+
     try {
       const dataToUpdate: any = {};
       if (body.name) dataToUpdate.name = body.name;
@@ -546,7 +564,7 @@ export class Auth2Controller {
         where: { id: userId },
         data: dataToUpdate,
       });
-      
+
       (user as any).password = undefined;
       return { ok: true, user };
     } catch (error: any) {
@@ -560,11 +578,17 @@ export class Auth2Controller {
 
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
+    // res.clearCookie('civic_session', {
+    //   httpOnly: true,
+    //   path: '/',
+    // });
     res.clearCookie('civic_session', {
       httpOnly: true,
-      path: '/', 
+      secure: true,
+      sameSite: 'none',
+      path: '/',
     });
-    
+
     return { message: 'Logged out successfully' };
   }
 }
