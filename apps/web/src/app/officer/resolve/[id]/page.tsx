@@ -2599,4 +2599,339 @@
 //       </div>
 //     </main>
 //   );
-// }  
+// }
+"use client";
+
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
+import { 
+  ArrowLeft, MapPin, Search, Hammer, CheckCircle2, 
+  Camera, Check, Clock, FileText, X, Plus, LocateFixed 
+} from "lucide-react";
+
+const API = process.env.NEXT_PUBLIC_API_BASE!;
+
+const STAGES = [
+  { id: 'ASSIGNED', label: 'Assigned', icon: MapPin },
+  { id: 'INSPECTION', label: 'Inspection', icon: Search },
+  { id: 'WORK_IN_PROGRESS', label: 'Work', icon: Hammer },
+  { id: 'RESOLVED', label: 'Resolved', icon: CheckCircle2 },
+];
+
+export default function OfficerResolvePage() {
+  const { id } = useParams();
+  const router = useRouter();
+  
+  const [c, setComplaint] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<string>(""); 
+
+  // Form Data
+  const [officerName, setOfficerName] = useState("");
+  const [note, setNote] = useState("");
+  const [files, setFiles] = useState<File[]>([]); 
+  const [submitting, setSubmitting] = useState(false);
+
+  // Location State
+  const [gps, setGps] = useState<{lat: number, lng: number} | null>(null);
+  const [locStatus, setLocStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+
+  function getTabForStatus(status: string) {
+    if (['CREATED', 'ACKNOWLEDGED'].includes(status)) return 'ASSIGNED';
+    if (status === 'ASSIGNED') return 'INSPECTION';
+    if (status === 'INSPECTION') return 'WORK_IN_PROGRESS';
+    if (status === 'WORK_IN_PROGRESS') return 'RESOLVED';
+    return 'RESOLVED';
+  }
+
+  useEffect(() => {
+    const token = localStorage.getItem("civic_token");
+    if (!token) return router.push("/login");
+    
+    fetch(`${API}/complaints/${id}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    })
+    .then(res => res.json())
+    .then(data => {
+      setComplaint(data);
+      setActiveTab(getTabForStatus(data.currentStatus));
+      setLoading(false);
+    })
+    .catch(() => router.push("/officer"));
+  }, [id, router]);
+
+  async function postAction(url: string, method = "POST", body: any) {
+    const token = localStorage.getItem("civic_token");
+    const headers: any = { "Authorization": `Bearer ${token}` };
+    if (!(body instanceof FormData)) headers["Content-Type"] = "application/json";
+
+    const res = await fetch(`${API}${url}`, { method, headers, body: body instanceof FormData ? body : JSON.stringify(body) });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || "Request failed");
+    }
+    return res.json();
+  }
+
+  const handleGetLocation = () => {
+    setLocStatus("loading");
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser");
+      setLocStatus("error");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setGps({
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        });
+        setLocStatus("success");
+      },
+      (err) => {
+        console.error(err);
+        alert("⚠️ GPS Failed: " + err.message + "\nMake sure location is enabled!");
+        setLocStatus("error");
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+  async function resolveJob() {
+    if (files.length === 0) return alert("📸 Photo required!");
+    if (!gps) return alert("📍 Location required! Click 'Tag Location'.");
+
+    setSubmitting(true);
+    try {
+      const formData = new FormData();
+      formData.append("lat", String(gps.lat));
+      formData.append("lng", String(gps.lng));
+      formData.append("note", note);
+      
+      files.forEach((file) => formData.append("images", file));
+
+      await postAction(`/complaints/${id}/resolve`, "POST", formData);
+      alert("🎉 Job Closed!");
+      router.push("/officer");
+    } catch (e: any) {
+      alert("Error: " + e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+        const newFiles = Array.from(e.target.files);
+        setFiles(prev => [...prev, ...newFiles].slice(0, 5));
+        e.target.value = ""; 
+    }
+  };
+  const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index));
+
+  function getStageHistory(stageId: string) {
+    if (!c || !c.events) return null;
+    const typeMap: Record<string, string> = {
+      'ASSIGNED': 'ASSIGNED', 'INSPECTION': 'INSPECTION_STARTED', 
+      'WORK_IN_PROGRESS': 'WORK_STARTED', 'RESOLVED': 'RESOLVED'
+    };
+    return c.events.filter((e: any) => e.type === typeMap[stageId]).pop(); 
+  }
+
+  if (loading || !c) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Loading...</div>;
+
+  const currentStageIndex = STAGES.findIndex(s => s.id === c.currentStatus);
+  const activeTabIndex = STAGES.findIndex(s => s.id === activeTab);
+  const progressPercent = (Math.max(0, currentStageIndex) / (STAGES.length - 1)) * 100;
+  
+  const isTabCompleted = activeTabIndex <= currentStageIndex;
+  const showHistory = (isTabCompleted && activeTab !== getTabForStatus(c.currentStatus)) || (activeTab === 'RESOLVED' && c.currentStatus === 'RESOLVED');
+  const historyEvent = showHistory ? getStageHistory(activeTab) : null;
+
+  return (
+    <main className="min-h-screen bg-black text-zinc-200 font-sans pb-20">
+      <nav className="sticky top-0 z-20 bg-black/80 backdrop-blur-md border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+        <Link href="/officer" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
+          <ArrowLeft size={18} /> <span className="font-medium text-sm">Back</span>
+        </Link>
+        <div className="text-[10px] sm:text-xs font-bold text-zinc-500 uppercase tracking-widest">{c.id.slice(0, 8)}</div>
+      </nav>
+
+      <div className="max-w-xl mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
+        
+        {/* HEADER */}
+        <header>
+          <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">{c.title}</h1>
+          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-zinc-400">
+            <span className="px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 text-[10px] sm:text-xs font-bold border border-blue-800">{c.category}</span>
+            <span>• {c.ward?.name}</span>
+          </div>
+        </header>
+
+        {/* RESPONSIVE STEPPER */}
+        <div className="relative pt-2 pb-6 px-1 sm:px-2">
+          {/* Background Track Line */}
+          <div className="absolute top-4 sm:top-5 left-4 sm:left-6 right-4 sm:right-6 h-1 bg-zinc-800 rounded-full" />
+          {/* Active Track Line */}
+          <div 
+            className="absolute top-4 sm:top-5 left-4 sm:left-6 h-1 rounded-full transition-all duration-700 bg-gradient-to-r from-blue-600 to-green-500" 
+            style={{ width: `calc(${progressPercent}% - 32px)` }} 
+          />
+          
+          <div className="relative flex justify-between z-10">
+            {STAGES.map((stage, idx) => {
+              const isCompleted = idx <= currentStageIndex;
+              const isActive = stage.id === activeTab;
+              return (
+                <button 
+                  key={stage.id} 
+                  disabled={idx > currentStageIndex + 1}
+                  onClick={() => { if (idx <= currentStageIndex + 1) setActiveTab(stage.id); }}
+                  className={`flex flex-col items-center gap-1.5 sm:gap-2 group outline-none transition-all ${idx > currentStageIndex + 1 ? 'opacity-40' : ''}`}
+                >
+                  <div className={`
+                    w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 transition-all 
+                    ${isActive ? 'scale-110 border-blue-400 bg-zinc-900 text-white' : isCompleted ? 'bg-zinc-900 border-green-500 text-green-500' : 'bg-black border-zinc-800 text-zinc-700'}
+                  `}>
+                    <stage.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={isActive ? 2.5 : 2} />
+                  </div>
+                  <div className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isActive ? 'text-white' : 'text-zinc-600'}`}>
+                    {stage.label}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* CONTENT AREA */}
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 sm:p-6">
+          
+          {/* HISTORY VIEW */}
+          {showHistory && historyEvent && (
+            <div className="space-y-4">
+               <div className="bg-black/40 border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-3">
+                  <div className="flex items-center gap-2 text-[10px] sm:text-xs text-zinc-500 mb-2">
+                     <Clock size={12} /> Completed on {new Date(historyEvent.createdAt).toLocaleString()}
+                  </div>
+                  <div className="text-xs sm:text-sm text-zinc-200">{historyEvent.data?.note}</div>
+                  {/* PROOF IMAGES */}
+                  {(historyEvent.data?.proofUrls || [historyEvent.data?.proofUrl]).filter(Boolean).length > 0 && (
+                      <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar mt-3">
+                        {(historyEvent.data.proofUrls || [historyEvent.data.proofUrl]).map((url: string, idx: number) => (
+                          <img key={idx} src={`${API}${url}`} className="rounded-lg border border-zinc-700 w-20 h-20 sm:w-24 sm:h-24 object-cover shrink-0" />
+                        ))}
+                      </div>
+                  )}
+               </div>
+               {activeTab !== getTabForStatus(c.currentStatus) && (
+                  <button onClick={() => setActiveTab(getTabForStatus(c.currentStatus))} className="w-full text-center text-xs text-blue-400 hover:text-blue-300 underline p-2">
+                      Return to Active Task &rarr;
+                  </button>
+               )}
+            </div>
+          )}
+
+          {/* ACTIVE FORM */}
+          {!showHistory && (
+             <>
+                {activeTab === 'ASSIGNED' && (
+                  <div className="space-y-4">
+                    <input type="text" value={officerName} onChange={(e) => setOfficerName(e.target.value)} placeholder="Officer Name..." className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white outline-none focus:border-blue-500 transition" />
+                    <button onClick={async () => {
+                       if(!officerName) return alert("Name required");
+                       await postAction(`/complaints/${id}/assign`, "PATCH", { officerName });
+                       window.location.reload();
+                    }} className="w-full py-3 sm:py-3.5 bg-blue-600 text-white text-sm font-bold rounded-xl active:scale-95 transition">Confirm Assignment</button>
+                  </div>
+                )}
+
+                {activeTab === 'INSPECTION' && (
+                   <div className="space-y-4">
+                     <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Observations..." className="w-full h-28 sm:h-32 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-blue-500 transition resize-none"/>
+                     <button onClick={async () => {
+                        await postAction(`/complaints/${id}/advance`, "POST", { nextStatus: 'INSPECTION', note });
+                        window.location.reload();
+                     }} className="w-full py-3 sm:py-3.5 bg-white text-black text-sm font-bold rounded-xl active:scale-95 transition">Start Inspection</button>
+                   </div>
+                )}
+                
+                {activeTab === 'WORK_IN_PROGRESS' && (
+                   <div className="space-y-4">
+                     <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Work details..." className="w-full h-28 sm:h-32 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-amber-500 transition resize-none"/>
+                     <button onClick={async () => {
+                        await postAction(`/complaints/${id}/advance`, "POST", { nextStatus: 'WORK_IN_PROGRESS', note });
+                        window.location.reload();
+                     }} className="w-full py-3 sm:py-3.5 bg-amber-600 text-white text-sm font-bold rounded-xl active:scale-95 transition">Start Work</button>
+                   </div>
+                )}
+
+                {/* RESOLVED FORM */}
+                {activeTab === 'RESOLVED' && (
+                  <div className="space-y-5">
+                    <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Final resolution notes..." className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white outline-none focus:border-green-500 transition resize-none" />
+                    
+                    {/* 1. FILE UPLOAD */}
+                    <div className="space-y-2">
+                        <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 no-scrollbar">
+                          {files.map((f, i) => (
+                            <div key={i} className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 border border-zinc-700 rounded-xl overflow-hidden group">
+                               <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" />
+                               <button onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1"><X size={12}/></button>
+                            </div>
+                          ))}
+                          {files.length < 5 && (
+                              <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 border-2 border-dashed border-zinc-700 rounded-xl flex flex-col items-center justify-center bg-black/30 hover:bg-zinc-900/50 cursor-pointer transition">
+                                  <input type="file" multiple accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                  <Plus size={20} className="text-zinc-500" />
+                              </div>
+                          )}
+                        </div>
+                    </div>
+
+                    {/* 2. COMPULSORY LOCATION BUTTON */}
+                    <div className="bg-black/30 border border-zinc-800 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 w-full">
+                           <div className={`p-2 rounded-full shrink-0 ${locStatus === 'success' ? 'bg-green-900/30 text-green-400' : 'bg-zinc-800 text-zinc-500'}`}>
+                              <LocateFixed size={18} className="sm:w-5 sm:h-5" />
+                           </div>
+                           <div className="min-w-0 flex-1">
+                              <p className="font-medium text-xs sm:text-sm text-zinc-300">Geo-tagging</p>
+                              <p className="text-[10px] sm:text-xs text-zinc-500 truncate">
+                                {locStatus === 'idle' && "Required for closure"}
+                                {locStatus === 'loading' && "Fetching location..."}
+                                {locStatus === 'success' && "Location Locked ✅"}
+                                {locStatus === 'error' && "Location Failed ❌"}
+                              </p>
+                           </div>
+                        </div>
+                        
+                        {locStatus !== 'success' && (
+                          <button 
+                            onClick={handleGetLocation} 
+                            disabled={locStatus === 'loading'}
+                            className="w-full sm:w-auto px-4 py-2 sm:px-3 sm:py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg disabled:opacity-50 transition shrink-0"
+                          >
+                            {locStatus === 'loading' ? '...' : 'Tag Location'}
+                          </button>
+                        )}
+                    </div>
+
+                    <button 
+                      onClick={resolveJob} 
+                      disabled={submitting || files.length === 0 || locStatus !== 'success'} 
+                      className="w-full py-3 sm:py-3.5 bg-green-600 hover:bg-green-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white text-sm font-bold rounded-xl transition active:scale-95"
+                    >
+                      {submitting ? "Closing..." : "Close Ticket"}
+                    </button>
+                  </div>
+                )}
+             </>
+          )}
+        </div>
+      </div>
+    </main>
+  );
+}
