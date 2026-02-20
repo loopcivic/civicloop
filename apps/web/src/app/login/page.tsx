@@ -1388,6 +1388,7 @@ export default function LoginPage() {
       if (data.token) {
         localStorage.setItem("civic_token", data.token);
         localStorage.setItem("civic_role", "CITIZEN");
+        document.cookie = `civic_session=${data.token}; path=/; max-age=86400; SameSite=Lax`;
         window.dispatchEvent(new Event("authChanged"));
       }
 
@@ -1458,6 +1459,7 @@ export default function LoginPage() {
       const data = await res.json();
       localStorage.setItem("civic_token", data.token);
       localStorage.setItem("civic_role", data.role);
+      document.cookie = `civic_session=${data.token}; path=/; max-age=86400; SameSite=Lax`;
       window.dispatchEvent(new Event("authChanged"));
 
       if (data.role === "OFFICER") router.push("/officer");
