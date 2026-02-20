@@ -1136,9 +1136,17 @@ export default function ReportPage() {
         formData.append("images", file);
       });
 
-      const res = await fetch(`${API_BASE}/complaints`, { 
+      // 1. Grab your token (Update "civic_token" if you use a different key in localStorage!)
+      // 1. Grab your token from local storage
+      const token = localStorage.getItem("civic_token");
+
+      // 2. Send the request with the Authorization header
+      const res = await fetch(`${API_BASE}/complaints`, {
         method: "POST",
         credentials: "include",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
         body: formData,
       });
 
@@ -1180,7 +1188,7 @@ export default function ReportPage() {
         <div className="space-y-4 md:space-y-5">
 
           {/* Title */}
-          <input 
+          <input
             className="w-full bg-zinc-800/50 border border-zinc-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl p-3.5 md:p-3 text-base md:text-sm text-white outline-none transition"
             placeholder="Issue title"
             value={form.title}
@@ -1188,7 +1196,7 @@ export default function ReportPage() {
           />
 
           {/* Description */}
-          <textarea 
+          <textarea
             className="w-full bg-zinc-800/50 border border-zinc-700 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl p-3.5 md:p-3 text-base md:text-sm text-white outline-none transition custom-scrollbar"
             placeholder="Describe the problem..."
             rows={3}
@@ -1199,7 +1207,7 @@ export default function ReportPage() {
           {/* 3-Column Grid on Desktop, 2-Column on Mobile for Selects */}
           <div className="grid grid-row-1 sm:grid-row-2 md:grid-row-3 gap-3 md:gap-4">
             {/* Category */}
-            <select 
+            <select
               className="w-full bg-zinc-800/50 border border-zinc-700 focus:border-blue-500 rounded-xl p-3.5 md:p-3 text-base md:text-sm text-white outline-none"
               value={form.category}
               onChange={(e) => setForm({ ...form, category: e.target.value })}
@@ -1210,7 +1218,7 @@ export default function ReportPage() {
             </select>
 
             {/* Ward */}
-            <select 
+            <select
               className="w-full bg-zinc-800/50 border border-zinc-700 focus:border-blue-500 rounded-xl p-3.5 md:p-3 text-base md:text-sm text-white outline-none"
               value={form.wardId}
               onChange={(e) => setForm({ ...form, wardId: e.target.value })}
@@ -1219,7 +1227,7 @@ export default function ReportPage() {
             </select>
 
             {/* Department (Spans full width on mobile if odd number) */}
-            <select 
+            <select
               className="w-full bg-zinc-800/50 border border-zinc-700 focus:border-blue-500 rounded-xl p-3.5 md:p-3 text-base md:text-sm text-white outline-none sm:col-span-2 md:col-span-1"
               value={form.departmentId}
               onChange={(e) => setForm({ ...form, departmentId: e.target.value })}
@@ -1230,14 +1238,14 @@ export default function ReportPage() {
 
           {/* Location */}
           <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-            <input 
+            <input
               className="flex-1 bg-zinc-900 border border-zinc-700 focus:border-blue-500 rounded-xl p-3.5 md:p-3 text-base md:text-sm text-white outline-none"
               placeholder="Landmark / Location details"
               value={form.locationText}
               onChange={(e) => setForm({ ...form, locationText: e.target.value })}
             />
-            <button 
-              className="flex items-center justify-center gap-2 bg-blue-600/10 border border-blue-500/50 hover:bg-blue-600/20 active:bg-blue-600/30 px-5 py-3.5 md:py-3 rounded-xl text-blue-400 font-medium transition whitespace-nowrap" 
+            <button
+              className="flex items-center justify-center gap-2 bg-blue-600/10 border border-blue-500/50 hover:bg-blue-600/20 active:bg-blue-600/30 px-5 py-3.5 md:py-3 rounded-xl text-blue-400 font-medium transition whitespace-nowrap"
               onClick={useLocation}
             >
               <MapPin size={18} />
