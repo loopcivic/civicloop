@@ -52,6 +52,7 @@ async function bootstrap() {
     'http://10.149.72.136:3000',
     'https://civicloop.app',        // production
     'https://www.civicloop.app',    // production
+    'https://civicloop-web.vercel.app',
     'https://staging.civicloop.app' // optional
   ];
 
