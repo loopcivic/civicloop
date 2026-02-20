@@ -1,3 +1,47 @@
+// // // apps/api/src/auth2/email.service.ts
+
+// // import { Injectable } from '@nestjs/common';
+// // import * as nodemailer from 'nodemailer';
+
+// // @Injectable()
+// // export class EmailService {
+// //   private transporter: nodemailer.Transporter;
+
+// //   constructor() {
+// //     this.transporter = nodemailer.createTransport({
+// //       service: 'gmail',
+// //       auth: {
+// //         user: process.env.EMAIL_USER,
+// //         pass: process.env.EMAIL_PASS, 
+// //       },
+      
+// //       tls: {
+// //         rejectUnauthorized: false
+// //       }
+// //     });
+// //   }
+
+// //   async sendOtpEmail(to: string, otp: string) {
+// //     const mailOptions = {
+// //       from: `"CivicLoop System" <${process.env.EMAIL_USER}>`,
+// //       to: to,
+// //       subject: 'Your CivicLoop Login Verification Code',
+// //       html: `
+// //         <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
+// //           <h2 style="color: #18181b; text-align: center;">CivicLoop Authentication</h2>
+// //           <p style="color: #52525b; font-size: 16px;">Hello,</p>
+// //           <p style="color: #52525b; font-size: 16px;">Your verification code to access the portal is:</p>
+// //           <div style="background-color: #f4f4f5; padding: 16px; border-radius: 8px; text-align: center; margin: 24px 0;">
+// //             <h1 style="letter-spacing: 8px; color: #2563eb; margin: 0; font-size: 32px;">${otp}</h1>
+// //           </div>
+// //           <p style="color: #71717a; font-size: 14px; text-align: center;">This code will expire in 5 minutes. Do not share it with anyone.</p>
+// //         </div>
+// //       `,
+// //     };
+
+// //     await this.transporter.sendMail(mailOptions);
+// //   }
+// // }
 // // apps/api/src/auth2/email.service.ts
 
 // import { Injectable } from '@nestjs/common';
@@ -9,16 +53,20 @@
 
 //   constructor() {
 //     this.transporter = nodemailer.createTransport({
-//       service: 'gmail',
+//       // 1. Remove service: 'gmail' and use explicit host settings
+//       host: 'smtp.gmail.com',
+//       port: 465,
+//       secure: true, 
 //       auth: {
 //         user: process.env.EMAIL_USER,
 //         pass: process.env.EMAIL_PASS, 
 //       },
-      
+//       // 2. Force Node.js to use IPv4 instead of IPv6 (Fixes Render ENETUNREACH error)
+//       family: 4,
 //       tls: {
 //         rejectUnauthorized: false
 //       }
-//     });
+//     }as any);
 //   }
 
 //   async sendOtpEmail(to: string, otp: string) {
@@ -45,36 +93,26 @@
 // apps/api/src/auth2/email.service.ts
 
 import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
 
 @Injectable()
 export class EmailService {
-  private transporter: nodemailer.Transporter;
-
-  constructor() {
-    this.transporter = nodemailer.createTransport({
-      // 1. Remove service: 'gmail' and use explicit host settings
-      host: 'smtp.gmail.com',
-      port: 465,
-      secure: true, 
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS, 
-      },
-      // 2. Force Node.js to use IPv4 instead of IPv6 (Fixes Render ENETUNREACH error)
-      family: 4,
-      tls: {
-        rejectUnauthorized: false
-      }
-    }as any);
-  }
-
   async sendOtpEmail(to: string, otp: string) {
-    const mailOptions = {
-      from: `"CivicLoop System" <${process.env.EMAIL_USER}>`,
-      to: to,
-      subject: 'Your CivicLoop Login Verification Code',
-      html: `
+    const apiKey = process.env.BREVO_API_KEY;
+
+    if (!apiKey) {
+      console.error('ERROR: BREVO_API_KEY is not set in environment variables.');
+      return;
+    }
+
+    const payload = {
+      sender: {
+        name: "CivicLoop System",
+        // Make sure this exactly matches the email you signed up to Brevo with!
+        email: process.env.EMAIL_USER 
+      },
+      to: [{ email: to }],
+      subject: "Your CivicLoop Login Verification Code",
+      htmlContent: `
         <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 12px;">
           <h2 style="color: #18181b; text-align: center;">CivicLoop Authentication</h2>
           <p style="color: #52525b; font-size: 16px;">Hello,</p>
@@ -84,9 +122,29 @@ export class EmailService {
           </div>
           <p style="color: #71717a; font-size: 14px; text-align: center;">This code will expire in 5 minutes. Do not share it with anyone.</p>
         </div>
-      `,
+      `
     };
 
-    await this.transporter.sendMail(mailOptions);
+    try {
+      // Bypasses Render's firewall by using a standard HTTPS request
+      const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+        method: 'POST',
+        headers: {
+          'accept': 'application/json',
+          'api-key': apiKey,
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('Brevo API Error:', errorData);
+      } else {
+        console.log(`📧 [EMAIL OTP] Successfully passed to Brevo API for ${to}`);
+      }
+    } catch (error) {
+      console.error('Failed to execute fetch request to Brevo:', error);
+    }
   }
 }
