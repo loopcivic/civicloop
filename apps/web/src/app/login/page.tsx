@@ -1418,9 +1418,11 @@ export default function LoginPage() {
     }
     setErr(null); setLoading(true);
     try {
+      const token = localStorage.getItem("civic_token");
       const res = await fetch(`${API}/auth/profile`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json","Authorization": `Bearer ${token}` },
+        
         body: JSON.stringify({ name: onboardName, email: onboardEmail, phone: onboardPhone }),
         credentials: "include",
       });
