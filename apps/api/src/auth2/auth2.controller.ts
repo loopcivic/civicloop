@@ -417,10 +417,11 @@ export class Auth2Controller {
     // });
     const isProd = process.env.NODE_ENV === 'production';
 
+    // Replace this block in verify-otp and login-staff:
     res.cookie('civic_session', out.token, {
       httpOnly: true,
-      secure: isProd,                     // must be true in production
-      sameSite: isProd ? 'none' : 'lax',  // required for cross-site
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', // The Vercel proxy makes it Same-Site!
       path: '/',
       maxAge: 7 * 24 * 3600_000,
     });
@@ -439,14 +440,14 @@ export class Auth2Controller {
     // });
     const isProd = process.env.NODE_ENV === 'production';
 
+    // Replace this block in verify-otp and login-staff:
     res.cookie('civic_session', out.token, {
       httpOnly: true,
-      secure: isProd,                     // must be true in production
-      sameSite: isProd ? 'none' : 'lax',  // required for cross-site
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', // The Vercel proxy makes it Same-Site!
       path: '/',
       maxAge: 7 * 24 * 3600_000,
     });
-
     return { ok: true, token: out.token, role: out.role };
   }
 
@@ -576,16 +577,27 @@ export class Auth2Controller {
     }
   }
 
+  // @Post('logout')
+  // async logout(@Res({ passthrough: true }) res: Response) {
+  //   // res.clearCookie('civic_session', {
+  //   //   httpOnly: true,
+  //   //   path: '/',
+  //   // });
+  //   res.clearCookie('civic_session', {
+  //     httpOnly: true,
+  //     secure: true,
+  //     sameSite: 'none',
+  //     path: '/',
+  //   });
+
+  //   return { message: 'Logged out successfully' };
+  // }
   @Post('logout')
   async logout(@Res({ passthrough: true }) res: Response) {
-    // res.clearCookie('civic_session', {
-    //   httpOnly: true,
-    //   path: '/',
-    // });
     res.clearCookie('civic_session', {
       httpOnly: true,
-      secure: true,
-      sameSite: 'none',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
       path: '/',
     });
 

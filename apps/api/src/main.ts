@@ -15,11 +15,12 @@ async function bootstrap() {
   // const app = await NestFactory.create(AppModule);
 
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  app.set('trust proxy', 1);
 
   // app.useStaticAssets(join(__dirname, '..', 'uploads'), {
   //   prefix: '/uploads/',
   // });
-    app.useStaticAssets(join(process.cwd(), 'src', 'uploads'), {
+  app.useStaticAssets(join(process.cwd(), 'src', 'uploads'), {
 
     prefix: '/uploads/',
   });
@@ -85,7 +86,7 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('/docs', app, document);
-  
+
 
   const port = process.env.PORT ? Number(process.env.PORT) : 4000;
   await app.listen(port);
