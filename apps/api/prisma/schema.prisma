@@ -68,9 +68,14 @@ enum Vote {
   NOT_FIXED
 }
 
+// ✅ UPGRADED: Added new Issue-Specific Reactions
 enum SignalType {
   UPVOTE
   STILL_PRESENT
+  SAFETY_HAZARD
+  TRAFFIC_BLOCKER
+  BAD_SMELL
+  COSTING_MONEY
 }
 
 enum EntityType {
@@ -82,23 +87,6 @@ enum EntityType {
 // =======================
 // MODELS
 // =======================
-//model User {
-//  id        String   @id @default(uuid())
-//  phone     String?  @unique
-//  email     String?  @unique
-//  name      String?
-//  role      Role     @default(CITIZEN)
-//  password String ?
-//  
-
-//  createdAt DateTime @default(now())
-
-//  complaints      Complaint[]       @relation("UserComplaints")
-//  validations     Validation[]
-//  officer         Officer?
-//  ComplaintSignal ComplaintSignal[]
-//  assignedComplaints Complaint[] @relation("OfficerAssignments")
-//}
 
 model User {
   id        String   @id @default(uuid())
@@ -112,26 +100,28 @@ model User {
 
   createdAt DateTime @default(now())
 
-  // ✅ NEW: Officer Details (Nullable, so it doesn't break Citizens)
+  // Officer Details (Nullable, so it doesn't break Citizens)
   wardId       String?
   departmentId String?
 
-  // ✅ NEW: Direct Relations to Ward & Dept
+  // Direct Relations to Ward & Dept
   ward         Ward?       @relation(fields: [wardId], references: [id])
   department   Department? @relation(fields: [departmentId], references: [id])
 
   // Existing Relations
-  complaints          Complaint[]       @relation("UserComplaints")
-  validations         Validation[]
+  complaints         Complaint[]       @relation("UserComplaints")
+  validations        Validation[]
   
-  // 🔴 COMMENT THIS OUT (We are replacing the Officer table)
-  // officer          Officer?
-
-  ComplaintSignal     ComplaintSignal[]
+  ComplaintSignal    ComplaintSignal[]
+  updates            ComplaintUpdate[]
   
-  // ✅ This is the critical link for your new Assignment logic
-  assignedComplaints  Complaint[]       @relation("OfficerAssignments")
+  // ✅ NEW: Relation for Nudging
+  nudges             Nudge[]
+  
+  // This is the critical link for your new Assignment logic
+  assignedComplaints Complaint[]       @relation("OfficerAssignments")
 }
+
 model VerificationToken {
   id         String   @id @default(uuid())
   identifier String   // This will store either the email OR the phone number
@@ -141,6 +131,7 @@ model VerificationToken {
 
   @@unique([identifier, token]) // Ensures we can look up the exact OTP for the identifier
 }
+
 model Department {
   id        String   @id @default(uuid())
   name      String
@@ -149,7 +140,7 @@ model Department {
 
   officers   User[]
   slas       SLA[]
-  complaints Complaint[] // ✅ ADD THIS LINE
+  complaints Complaint[] 
 }
 
 model Ward {
@@ -161,56 +152,6 @@ model Ward {
   officers   User[]
   complaints Complaint[]
 }
-
-//model Officer {
-//  id     String @id @default(uuid())
-//  userId String @unique
-//  user   User   @relation(fields: [userId], references: [id])
-
-//  departmentId String
-//  department   Department @relation(fields: [departmentId], references: [id])
-
-//  wardId String
-//  ward   Ward   @relation(fields: [wardId], references: [id])
-
-//  createdAt DateTime    @default(now())
-//  Complaint Complaint[]
-//}
-
-
-
-//model Complaint {
-//  id String @id @default(uuid())
-
-//  createdById String
-//  createdBy   User   @relation("UserComplaints", fields: [createdById], references: [id])
-
-//  title       String
-//  description String?
-//  category    Category
-
-//  departmentId String
-//  department   Department @relation(fields: [departmentId], references: [id])
-
-//  wardId String
-//  ward   Ward   @relation(fields: [wardId], references: [id])
-
-//  lat          Float
-//  lng          Float
-//  locationText String?
-
-//  createdAt DateTime @default(now())
-
-//  // cached for list queries (truth comes from events)
-//  currentStatus Status @default(CREATED)
-
-//  events      ComplaintEvent[]
-//  media       Media[]
-//  validations Validation[]
-
-//  @@index([wardId, createdAt])
-//  @@index([departmentId, createdAt])
-//}
 
 model Complaint {
   id          String @id @default(uuid())
@@ -227,12 +168,9 @@ model Complaint {
   wardId String
   ward   Ward   @relation(fields: [wardId], references: [id])
 
-  // ✅ NEW: assigned officer (optional until ACK)
   assignedOfficerId String?
-  //assignedOfficer   Officer? @relation(fields: [assignedOfficerId], references: [id])
   assignedOfficer   User?   @relation("OfficerAssignments", fields: [assignedOfficerId], references: [id])
 
-  // ✅ NEW: duplicates link to canonical complaint
   duplicateOfId String?
   duplicateOf   Complaint?  @relation("DuplicateLink", fields: [duplicateOfId], references: [id])
   duplicates    Complaint[] @relation("DuplicateLink")
@@ -242,17 +180,43 @@ model Complaint {
   locationText String?
 
   createdAt     DateTime @default(now())
+  resolvedAt     DateTime?
   currentStatus Status   @default(CREATED)
 
   events      ComplaintEvent[]
   media       Media[]
   validations Validation[]
   signals     ComplaintSignal[]
+  updates     ComplaintUpdate[]
+  
+  // ✅ NEW: Relation for Nudging
+  nudges      Nudge[]
 
   @@index([wardId, createdAt])
   @@index([departmentId, createdAt])
   @@index([assignedOfficerId, createdAt])
   @@index([duplicateOfId])
+}
+
+model ComplaintUpdate {
+  id          String    @id @default(uuid())
+  
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id])
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  
+  text        String
+  mediaUrl    String?   // Optional: If citizens upload a new photo of the progress
+
+  // ✅ NEW: Tagging & Pinning for Chat Validation
+  tag         String?   // E.g., "WORK_SPOTTED", "HAZARD"
+  isPinned    Boolean   @default(false)
+
+  createdAt   DateTime  @default(now())
+
+  @@index([complaintId, createdAt])
 }
 
 model ComplaintSignal {
@@ -264,9 +228,30 @@ model ComplaintSignal {
   user   User   @relation(fields: [userId], references: [id])
 
   type      SignalType
+  
+  // ✅ NEW: Impact/Severity Slider Support (1 = Minor, 2 = Inconvenience, 3 = Danger)
+  severity  Int        @default(1)
+
   createdAt DateTime   @default(now())
 
   @@unique([complaintId, userId, type])
+  @@index([complaintId, createdAt])
+}
+
+// ✅ NEW: Nudge Model for the "Urge Action" feature
+model Nudge {
+  id          String    @id @default(uuid())
+  
+  complaintId String
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now())
+
+  // A user can only nudge a specific complaint once (we will enforce 24hr cooldown in backend logic)
+  @@unique([complaintId, userId])
   @@index([complaintId, createdAt])
 }
 
@@ -279,11 +264,11 @@ model ComplaintEvent {
   actorUserId String?
   actorRole   Role?
 
-  data      Json
+  data        Json
   createdAt DateTime @default(now())
 
   prevHash String?
-  hash     String  @unique
+  hash      String  @unique
 
   @@index([complaintId, createdAt])
 }
@@ -332,6 +317,9 @@ model Validation {
   note     String?
   mediaUrl String?
 
+  isLocal     Boolean  @default(false)
+  weight      Int      @default(1) 
+
   createdAt DateTime @default(now())
 
   @@unique([complaintId, userId])
@@ -341,15 +329,15 @@ model PerformanceSnapshot {
   id          String     @id @default(uuid())
   entityType  EntityType
   entityId    String
-  periodMonth DateTime // store first day of month
+  periodMonth DateTime 
 
   totalIssues    Int
   ackP50Min      Int
   ackP95Min      Int
   resolveP50Min  Int
   resolveP95Min  Int
-  resolutionRate Int // 0..100
-  slaBreachRate  Int // 0..100
+  resolutionRate Int 
+  slaBreachRate  Int 
 
   createdAt DateTime @default(now())
 
@@ -368,4 +356,3 @@ model OtpCode {
   @@index([phone])
   @@index([phone, expiresAt])
 }
-

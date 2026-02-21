@@ -189,7 +189,7 @@ import { Role } from '@prisma/client';
 import { Patch } from '@nestjs/common';
 
 import { UseInterceptors, UploadedFile } from '@nestjs/common';
-import { FilesInterceptor } from '@nestjs/platform-express';
+import { FilesInterceptor, FileInterceptor } from '@nestjs/platform-express';
 import { multerConfig } from '../common/multer.config';
 
 
@@ -282,11 +282,26 @@ export class ComplaintsController {
   //   return this.complaints.upvote(id, req.user.id);
   // }
   // ✅ UPDATED: Generic endpoint for all poll buttons
+  // @Post('/complaints/:id/signal')
+  // @UseGuards(JwtCookieGuard, RolesGuard)
+  // @Roles(Role.CITIZEN)
+  // toggleSignal(@Req() req: any, @Param('id') id: string, @Body() body: { type: 'UPVOTE' | 'STILL_PRESENT' }) {
+  //   return this.complaints.toggleSignal(id, req.user.id, body.type);
+  // }
+  // ✅ UPGRADED: Signal endpoint now accepts severity
   @Post('/complaints/:id/signal')
   @UseGuards(JwtCookieGuard, RolesGuard)
   @Roles(Role.CITIZEN)
-  toggleSignal(@Req() req: any, @Param('id') id: string, @Body() body: { type: 'UPVOTE' | 'STILL_PRESENT' }) {
-    return this.complaints.toggleSignal(id, req.user.id, body.type);
+  toggleSignal(@Req() req: any, @Param('id') id: string, @Body() body: { type: any, severity?: number }) {
+    return this.complaints.toggleSignal(id, req.user.id, body.type, body.severity || 1);
+  }
+
+  // ✅ NEW: Nudge endpoint
+  @Post('/complaints/:id/nudge')
+  @UseGuards(JwtCookieGuard, RolesGuard)
+  @Roles(Role.CITIZEN)
+  nudge(@Req() req: any, @Param('id') id: string) {
+    return this.complaints.nudgeComplaint(id, req.user.id);
   }
 
   @Post('/complaints/:id/link-duplicate')
@@ -295,4 +310,33 @@ export class ComplaintsController {
   linkDup(@Req() req: any, @Param('id') id: string, @Body() body: { canonicalId: string }) {
     return this.complaints.linkDuplicate(id, body.canonicalId, req.user.id, req.user.role);
   }
+
+  // ✅ NEW: Endpoint for Citizens/Officers to add an Update
+  // @Post('/:id/update')
+  // @UseGuards(JwtCookieGuard, RolesGuard)
+  // @Roles(Role.CITIZEN, Role.OFFICER, Role.ADMIN) // Let everyone participate!
+  // @UseInterceptors(FileInterceptor('image', multerConfig)) // Max 1 photo per update
+  // addUpdate(
+  //   @Req() req: any,
+  //   @Param('id') id: string,
+  //   @Body() body: { text: string },
+  //   @UploadedFile() file?: Express.Multer.File
+  // ) {
+  //   return this.complaints.addComplaintUpdate(id, req.user.id, body.text, file);
+  // }
+
+  // ✅ NEW: Endpoint for Community Updates
+  @Post('/complaints/:id/update') // <-- Added /complaints back to the path!
+  @UseGuards(JwtCookieGuard, RolesGuard)
+  @Roles(Role.CITIZEN, Role.OFFICER, Role.ADMIN) 
+  @UseInterceptors(FileInterceptor('image', multerConfig)) 
+  addUpdate(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() body: { text: string },
+    @UploadedFile() file?: Express.Multer.File
+  ) {
+    return this.complaints.addComplaintUpdate(id, req.user.id, body.text, file);
+  }
+
 }

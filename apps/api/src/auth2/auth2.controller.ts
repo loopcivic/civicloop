@@ -458,6 +458,8 @@ export class Auth2Controller {
       password: body.password,
       name: body.name,
       role: body.role,
+      wardId: body.wardId,             // ✅ ADD THIS
+      departmentId: body.departmentId, // ✅ ADD THIS
     });
     return { ok: true, user };
   }

@@ -1710,6 +1710,7 @@ export class ComplaintsService {
         validations: true,
         media: true,
         signals: true,
+        nudges: true,
         // ✅ NEW: Include Officer Details
         assignedOfficer: {
           select: { name: true, id: true, email: true }
@@ -1762,7 +1763,16 @@ export class ComplaintsService {
         signals: true, // 👈 ✅ NEW: Fetch the community poll votes
         assignedOfficer: {
           select: { name: true, id: true, email: true }
+        },
+        updates: {
+          include: {
+            user: {
+              select: { name: true, role: true } // Only fetch the name, never send passwords to frontend!
+            }
+          },
+          orderBy: { createdAt: 'asc' }
         }
+
       },
     });
 
@@ -2061,38 +2071,65 @@ export class ComplaintsService {
   }
 
   // ✅ 7. VALIDATE
-  async validateComplaint(complaintId: string, input: ValidateComplaintDto, citizenUserId: string) {
+  async validateComplaint(complaintId: string, input: any, citizenUserId: string) {
     const complaint = await this.prisma.complaint.findUnique({
       where: { id: complaintId },
       include: { events: { orderBy: { createdAt: 'asc' } } },
     });
+
     if (!complaint) throw new BadRequestException('Complaint not found');
 
     if (complaint.currentStatus !== Status.RESOLVED) {
       throw new BadRequestException(`Validation allowed only when status is RESOLVED`);
     }
 
+    // 🔥 1. GEO-FENCED WEIGHT CALCULATION 🔥
+    let isLocal = false;
+    let voteWeight = 1;
+
+    // Assuming your DTO and frontend send lat/lng, and the complaint has lat/lng
+    if (input.lat && input.lng && complaint.lat && complaint.lng) {
+      const distanceInKm = this.calculateDistance(input.lat, input.lng, complaint.lat, complaint.lng);
+
+      // If within 100 meters (0.1 km)
+      if (distanceInKm <= 0.1) {
+        isLocal = true;
+        voteWeight = 2; // This vote carries DOUBLE the weight!
+      }
+    }
+
+    // 2. Upsert the vote with the new weight and local flag
     await this.prisma.validation.upsert({
       where: { complaintId_userId: { complaintId, userId: citizenUserId } },
-      update: { vote: input.vote, note: input.note ?? null },
+      update: {
+        vote: input.vote,
+        note: input.note ?? null,
+        isLocal: isLocal,
+        weight: voteWeight
+      },
       create: {
         complaintId,
         userId: citizenUserId,
         vote: input.vote,
         note: input.note ?? null,
+        isLocal: isLocal,
+        weight: voteWeight
       },
     });
 
-    const counts = await this.prisma.validation.groupBy({
+    // 🔥 3. AGGREGATE USING SUM INSTEAD OF COUNT 🔥
+    const aggregates = await this.prisma.validation.groupBy({
       by: ['vote'],
       where: { complaintId },
-      _count: { _all: true },
+      _sum: { weight: true }, // Add up the weights, don't just count the rows!
     });
 
-    const confirmed = counts.find((c) => c.vote === 'CONFIRMED')?._count._all ?? 0;
-    const notFixed = counts.find((c) => c.vote === 'NOT_FIXED')?._count._all ?? 0;
+    const confirmed = aggregates.find((c) => c.vote === 'CONFIRMED')?._sum.weight ?? 0;
+    const notFixed = aggregates.find((c) => c.vote === 'NOT_FIXED')?._sum.weight ?? 0;
 
     const threshold = 3;
+
+    // 4. Threshold trigger (unchanged, but now uses weighted score!)
     if (notFixed >= threshold) {
       await appendEvent({
         prisma: this.prisma,
@@ -2110,10 +2147,12 @@ export class ComplaintsService {
 
       await this.sla.scheduleForComplaint(complaintId);
 
-      return { ok: true, status: Status.REOPENED, confirmed, notFixed };
+      // Return `isLocal` so the frontend knows to show the Geo-Badge
+      return { ok: true, status: Status.REOPENED, confirmed, notFixed, isLocal };
     }
 
-    return { ok: true, status: complaint.currentStatus, confirmed, notFixed };
+    // Return `isLocal` here as well
+    return { ok: true, status: complaint.currentStatus, confirmed, notFixed, isLocal };
   }
 
   // // ✅ 8. UPVOTE
@@ -2143,10 +2182,12 @@ export class ComplaintsService {
   // }
 
   // ✅ 8. TOGGLE SIGNAL (Community Poll)
-  async toggleSignal(complaintId: string, userId: string, type: 'UPVOTE' | 'STILL_PRESENT') {
+  // ✅ UPGRADED: Handles new civic emojis and severity levels
+  async toggleSignal(complaintId: string, userId: string, type: any, severity: number = 1) {
     const c = await this.prisma.complaint.findUnique({ where: { id: complaintId } });
     if (!c) throw new BadRequestException('Not found');
 
+    // Keeps your excellent duplicate handling!
     const targetId = c.duplicateOfId ?? c.id;
 
     // Check if the user already voted this specific option
@@ -2161,23 +2202,53 @@ export class ComplaintsService {
       await this.prisma.complaintSignal.delete({ where: { id: existing.id } });
       return { ok: true, active: false, type };
     } else {
-      // Toggle ON (Add vote)
+      // Toggle ON (Add vote with the new Severity level)
       await this.prisma.complaintSignal.create({
-        data: { complaintId: targetId, userId, type },
+        data: { 
+          complaintId: targetId, 
+          userId, 
+          type, 
+          severity // <-- Saves the slider value!
+        },
       });
 
-      // Log the event (Using UPVOTED event type for both, storing exact type in data)
-      // await appendEvent({
-      //   prisma: this.prisma,
-      //   complaintId: targetId,
-      //   type: EventType.UPVOTED, 
-      //   actorUserId: userId,
-      //   actorRole: Role.CITIZEN,
-      //   data: { signalType: type, at: new Date().toISOString() },
-      // });
-
-      return { ok: true, active: true, type };
+      return { ok: true, active: true, type, severity };
     }
+  }
+
+  // ✅ NEW: The "Urge Action" 24hr Cooldown Logic
+  async nudgeComplaint(complaintId: string, userId: string) {
+    const complaint = await this.prisma.complaint.findUnique({ where: { id: complaintId } });
+    if (!complaint) throw new BadRequestException('Complaint not found');
+
+    const targetId = complaint.duplicateOfId ?? complaint.id; // Also nudges the main duplicate!
+
+    const existingNudge = await this.prisma.nudge.findUnique({
+      where: { complaintId_userId: { complaintId: targetId, userId } }
+    });
+
+    if (existingNudge) {
+      // Check if the last nudge was within 24 hours
+      const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+      
+      if (existingNudge.createdAt > twentyFourHoursAgo) {
+        throw new BadRequestException('You can only nudge a complaint once every 24 hours.');
+      }
+      
+      // If it's been more than 24 hours, update the timestamp to now!
+      const updatedNudge = await this.prisma.nudge.update({
+        where: { id: existingNudge.id },
+        data: { createdAt: new Date() }
+      });
+      return { ok: true, nudge: updatedNudge };
+    }
+
+    // First time nudging this complaint
+    const newNudge = await this.prisma.nudge.create({
+      data: { complaintId: targetId, userId }
+    });
+
+    return { ok: true, nudge: newNudge };
   }
   // ✅ 9. LINK DUPLICATE
   async linkDuplicate(dupId: string, canonicalId: string, actorUserId: string, actorRole: Role) {
@@ -2205,5 +2276,39 @@ export class ComplaintsService {
     });
 
     return { ok: true, duplicateId: dupId, canonicalId };
+  }
+
+  // ✅ NEW: Save a Community Update
+  async addComplaintUpdate(complaintId: string, userId: string, text: string, file?: Express.Multer.File) {
+    const complaint = await this.prisma.complaint.findUnique({ where: { id: complaintId } });
+    if (!complaint) throw new BadRequestException('Complaint not found');
+
+    let mediaUrl: string | null = null;
+    if (file) {
+      mediaUrl = file.path; // Save the file path (Cloudinary/Local)
+    }
+
+    // Save the update to the database
+    const update = await this.prisma.complaintUpdate.create({
+      data: { complaintId, userId, text, mediaUrl }
+    });
+
+    // Broadcast to WebSockets so the live map/dashboard updates instantly
+    const updatedComplaint = await this.findOne(complaintId);
+    this.gateway.broadcastComplaintUpdate(updatedComplaint);
+
+    return { success: true, update };
+  }
+
+  // Calculates distance in kilometers between two coordinates
+  private calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLon = (lon2 - lon1) * (Math.PI / 180);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c; // Distance in km
   }
 }

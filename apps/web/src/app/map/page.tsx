@@ -275,12 +275,7 @@ export default function MapPage() {
         {/* Dashboard Back Button */}
         <button
           onClick={() => router.push("/")}
-          className="
-            pointer-events-auto flex items-center gap-2
-            bg-zinc-950/80 backdrop-blur-2xl border border-white/10
-            text-zinc-300 hover:text-white px-3 py-2 sm:px-5 sm:py-2.5
-            rounded-full hover:bg-zinc-800/80 transition-all text-sm font-bold shadow-[0_8px_30px_rgba(0,0,0,0.5)]
-          "
+          className="pointer-events-auto flex items-center gap-2 bg-zinc-950/80 backdrop-blur-2xl border border-white/10 text-zinc-300 hover:text-white px-3 py-2 sm:px-5 sm:py-2.5 rounded-full hover:bg-zinc-800/80 transition-all text-sm font-bold shadow-[0_8px_30px_rgba(0,0,0,0.5)]"
         >
           <ArrowLeft size={18} strokeWidth={2.5} />
           {/* Hide the word 'Dashboard' on extra small screens to save space */}
@@ -288,12 +283,7 @@ export default function MapPage() {
         </button>
 
         {/* CivicLoop Live Badge: Hidden on mobile so it doesn't overlap the Profile Widget! */}
-        <div className="
-            hidden md:flex pointer-events-auto
-            bg-zinc-950/80 backdrop-blur-2xl border border-white/10
-            text-white px-4 py-2.5 rounded-full
-            text-sm font-bold shadow-lg items-center gap-2
-          "
+        <div className="hidden md:flex pointer-events-auto bg-zinc-950/80 backdrop-blur-2xl border border-white/10 text-white px-4 py-2.5 rounded-full text-sm font-bold shadow-lg items-center gap-2"
         >
           <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>

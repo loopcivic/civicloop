@@ -453,10 +453,10 @@ export class Auth2Service {
   constructor(private prisma: PrismaService, private jwt: JwtService, private emailService: EmailService) { }
 
   // --- ✅ NEW UNIFIED CITIZEN OTP LOGIC (Email & Phone) ---
-  
+
   async requestOtp(identifier: string) {
     const isEmail = identifier.includes('@');
-    
+
     // Validate format
     if (!isEmail && !/^\+?[0-9]{10,15}$/.test(identifier)) {
       throw new BadRequestException('Invalid phone or email format');
@@ -467,8 +467,8 @@ export class Auth2Service {
     const expiresAt = new Date(Date.now() + 5 * 60_000); // 5 mins
 
     // Save to the new VerificationToken table
-    await this.prisma.verificationToken.create({ 
-      data: { identifier, token: codeHash, expiresAt } 
+    await this.prisma.verificationToken.create({
+      data: { identifier, token: codeHash, expiresAt }
     });
 
     // Logging for Pilot / Dev Mode
@@ -491,7 +491,7 @@ export class Auth2Service {
   async verifyOtp(identifier: string, code: string) {
     const isEmail = identifier.includes('@');
     const codeHash = sha256(code + '|' + (process.env.OTP_SALT ?? 'dev_salt'));
-    
+
     // Find the token
     const record = await this.prisma.verificationToken.findFirst({
       where: { identifier, token: codeHash },
@@ -515,11 +515,11 @@ export class Auth2Service {
     const user = await this.prisma.user.upsert({
       where: isEmail ? { email: identifier } : { phone: identifier },
       update: { role },
-      create: { 
+      create: {
         email: isEmail ? identifier : null,
         phone: !isEmail ? identifier : null,
-        role, 
-        name: `${role}-${nanoid(6)}` 
+        role,
+        name: `${role}-${nanoid(6)}`
       },
     });
 
@@ -566,6 +566,33 @@ export class Auth2Service {
     };
   }
 
+  // async registerStaff(data: {
+  //   email: string;
+  //   password: string;
+  //   name: string;
+  //   role: Role;
+  //   wardId?: string;
+  //   departmentId?: string;
+  // }) {
+  //   const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
+  //   if (existing) throw new BadRequestException('Email already exists');
+
+  //   const hashedPassword = await bcrypt.hash(data.password, 10);
+
+  //   const user = await this.prisma.user.create({
+  //     data: {
+  //       email: data.email,
+  //       password: hashedPassword,
+  //       name: data.name,
+  //       role: data.role,
+  //       phone: 'STAFF',
+  //       wardId: data.role === 'OFFICER' && data.wardId ? data.wardId : null,
+  //       departmentId: data.role === 'OFFICER' && data.departmentId ? data.departmentId : null,
+  //     },
+  //   });
+
+  //   return { id: user.id, email: user.email, role: user.role };
+  // }
   async registerStaff(data: {
     email: string;
     password: string;
@@ -585,7 +612,7 @@ export class Auth2Service {
         password: hashedPassword,
         name: data.name,
         role: data.role,
-        phone: 'STAFF',
+        // ❌ REMOVE: phone: 'STAFF' (This caused the 500 error)
         wardId: data.role === 'OFFICER' && data.wardId ? data.wardId : null,
         departmentId: data.role === 'OFFICER' && data.departmentId ? data.departmentId : null,
       },

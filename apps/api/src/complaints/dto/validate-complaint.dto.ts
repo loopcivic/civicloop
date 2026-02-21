@@ -1,4 +1,4 @@
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEnum, IsOptional, IsString, MaxLength, IsNumber } from 'class-validator';
 
 export enum Vote {
   CONFIRMED = 'CONFIRMED',
@@ -27,4 +27,12 @@ export class ValidateComplaintDto {
   @IsOptional()
   @IsString()
   ext?: string;
+
+  @IsOptional()
+  @IsNumber()
+  lat?: number;
+
+  @IsOptional()
+  @IsNumber()
+  lng?: number;
 }

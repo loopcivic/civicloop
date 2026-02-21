@@ -558,7 +558,7 @@
 // // //           {/* Recent Feed */}
 // // //           {/* <section className="space-y-5">
 // // //                 <h2 className="text-xl font-bold text-zinc-300">⏱️ Live Feed</h2>
-                
+
 // // //                 <div className="space-y-3">
 // // //                 {recent.map((c) => (
 // // //                     <Link key={c.id} href={`/complaints/${c.id}`} className="group block bg-zinc-900 p-5 rounded-2xl border border-zinc-800 hover:border-blue-500/50 transition relative overflow-hidden">
@@ -736,11 +736,11 @@
 // //             <h1 className="text-3xl md:text-4xl font-black text-white tracking-tight">CIVIC<span className="text-blue-500">LOOP</span></h1>
 // //             <p className="text-sm md:text-base text-zinc-500 mt-1 md:mt-2">Real-time City Operations Dashboard</p>
 // //           </div>
-          
+
 // //           {authReady && (
 // //             /* Buttons container stretches on mobile, auto width on desktop */
 // //             <div className="flex flex-col sm:flex-row md:flex-wrap gap-3 w-full md:w-auto mt-2 md:mt-0">
-              
+
 // //               {/* LIVE MAP BUTTON - Redesigned to span full width on small screens for easy tapping */}
 // //               <Link href="/map" className="w-full sm:w-auto">
 // //                 <button className="w-full sm:w-auto justify-center group relative flex items-center gap-3 px-5 py-3 md:py-2.5 md:mr-2 bg-zinc-900/80 backdrop-blur-md border border-white/10 hover:border-blue-500/50 rounded-xl md:rounded-full transition-all duration-300 ease-out shadow-lg shadow-black/20 hover:shadow-blue-900/20">
@@ -1013,7 +1013,7 @@
 
 //   return (
 //     <main className="min-h-screen bg-black font-sans relative overflow-hidden">
-      
+
 //       {/* --- AMBIENT BACKGROUND GLOWS --- */}
 //       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
 //       <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none" />
@@ -1030,10 +1030,10 @@
 //               <Globe size={16} className="text-blue-500" /> Real-time City Operations Hub
 //             </p>
 //           </div>
-          
+
 //           {authReady && (
 //             <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-              
+
 //               {/* LIVE MAP BUTTON - Glowing Radar Effect */}
 //               <Link href="/map" className="flex-1 sm:flex-none">
 //                 <button className="w-full justify-center group relative flex items-center gap-3 px-6 py-3 bg-zinc-900/80 backdrop-blur-xl border border-white/10 hover:border-blue-500/50 rounded-2xl transition-all duration-300 shadow-[0_0_30px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] active:scale-95">
@@ -1110,14 +1110,14 @@
 
 //         {/* --- MAIN CONTENT PANELS --- */}
 //         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 sm:gap-8">
-          
+
 //           {/* LEADERBOARD PANEL */}
 //           <section className="xl:col-span-7 bg-zinc-900/40 backdrop-blur-2xl border border-white/5 rounded-[2rem] p-6 sm:p-8 shadow-2xl flex flex-col h-[500px]">
 //             <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-3 mb-6">
 //               <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-xl border border-yellow-500/20"><Trophy size={20} /></div>
 //               Ward Performance
 //             </h2>
-            
+
 //             <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar pr-2">
 //               <table className="w-full text-left min-w-[500px]">
 //                 <thead className="sticky top-0 bg-zinc-900/90 backdrop-blur-xl z-10 text-zinc-500 text-xs uppercase tracking-widest font-bold border-b border-white/5">
@@ -1187,7 +1187,7 @@
 //                       </div>
 //                       <h3 className="font-bold text-zinc-200 group-hover:text-blue-400 transition-colors truncate text-base">{c.title}</h3>
 //                     </div>
-                    
+
 //                     <div className="flex flex-col items-end gap-2 shrink-0">
 //                       <span className={`px-2.5 py-1 rounded-lg text-[9px] font-bold tracking-widest uppercase border ${
 //                         c.currentStatus === 'RESOLVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
@@ -1219,7 +1219,8 @@ import { apiGet } from "@/lib/api";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-import { Map, Plus, Shield, LogOut, Activity, CheckCircle2, Clock, Trophy, ArrowRight, Globe } from "lucide-react";
+import { Map, Plus, Shield, LogOut, Activity, CheckCircle2, Clock, Trophy, ArrowRight, Globe, Camera, Navigation } from "lucide-react";
+
 
 export default function Home() {
   const router = useRouter();
@@ -1265,9 +1266,59 @@ export default function Home() {
 
   const [complaints, setComplaints] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  
+
   // ✅ NEW: State to track which filter is currently active
   const [activeFilter, setActiveFilter] = useState<'ALL' | 'RESOLVED' | 'PENDING'>('ALL');
+
+  // ✅ NEW: User Location State
+  const [userLoc, setUserLoc] = useState<{ lat: number, lng: number } | null>(null);
+
+  // ✅ NEW: Ask for location on load
+  // ✅ UPGRADED: Real-time active GPS tracking
+  useEffect(() => {
+    if (!("geolocation" in navigator)) return;
+
+    // watchPosition continuously updates if the GPS locks on late or the user walks down the street!
+    const watchId = navigator.geolocation.watchPosition(
+      (position) => {
+        setUserLoc({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      (error) => {
+        console.warn("Location access denied or unavailable", error);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10000,
+        timeout: 5000
+      }
+    );
+
+    // ✅ Clean up the tracker if the user leaves the dashboard
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, []);
+
+  // ✅ NEW: Distance Calculator
+  const getDistanceText = (lat?: number, lng?: number) => {
+    if (!userLoc || !lat || !lng) return null;
+
+    const R = 6371e3; // Earth radius in metres
+    const φ1 = (userLoc.lat * Math.PI) / 180;
+    const φ2 = (lat * Math.PI) / 180;
+    const Δφ = ((lat - userLoc.lat) * Math.PI) / 180;
+    const Δλ = ((lng - userLoc.lng) * Math.PI) / 180;
+
+    const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+      Math.cos(φ1) * Math.cos(φ2) *
+      Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c;
+
+    if (d < 1000) return `${Math.round(d)}m`;
+    return `${(d / 1000).toFixed(1)}km`;
+  };
 
   useEffect(() => {
     apiGet<any[]>("/complaints")
@@ -1337,7 +1388,7 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-black font-sans relative overflow-hidden">
-      
+
       {/* --- AMBIENT BACKGROUND GLOWS --- */}
       <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none" />
@@ -1354,10 +1405,10 @@ export default function Home() {
               <Globe size={16} className="text-blue-500" /> Real-time City Operations Hub
             </p>
           </div>
-          
+
           {authReady && (
             <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-              
+
               {/* LIVE MAP BUTTON */}
               <Link href="/map" className="flex-1 sm:flex-none">
                 <button className="w-full justify-center group relative flex items-center gap-3 px-6 py-3 bg-zinc-900/80 backdrop-blur-xl border border-white/10 hover:border-blue-500/50 rounded-2xl transition-all duration-300 shadow-[0_0_30px_rgba(0,0,0,0.5)] hover:shadow-[0_0_30px_rgba(59,130,246,0.2)] active:scale-95">
@@ -1404,9 +1455,9 @@ export default function Home() {
 
         {/* --- STATS GRID (NOW CLICKABLE) --- */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-          
+
           {/* TOTAL INCIDENTS CARD */}
-          <div 
+          <div
             onClick={() => setActiveFilter('ALL')}
             className={`cursor-pointer bg-zinc-900/40 backdrop-blur-2xl border p-6 rounded-[2rem] shadow-2xl relative overflow-hidden group transition-all duration-300 col-span-2 lg:col-span-1 
               ${activeFilter === 'ALL' ? 'border-blue-500/50 bg-blue-500/10' : 'border-white/5 hover:border-blue-500/30'}`}
@@ -1420,7 +1471,7 @@ export default function Home() {
           </div>
 
           {/* RESOLVED CARD */}
-          <div 
+          <div
             onClick={() => setActiveFilter('RESOLVED')}
             className={`cursor-pointer bg-zinc-900/40 backdrop-blur-2xl border p-6 rounded-[2rem] shadow-2xl relative overflow-hidden group transition-all duration-300 
               ${activeFilter === 'RESOLVED' ? 'border-emerald-500/50 bg-emerald-500/10' : 'border-white/5 hover:border-emerald-500/30'}`}
@@ -1434,7 +1485,7 @@ export default function Home() {
           </div>
 
           {/* PENDING CARD */}
-          <div 
+          <div
             onClick={() => setActiveFilter('PENDING')}
             className={`cursor-pointer bg-zinc-900/40 backdrop-blur-2xl border p-6 rounded-[2rem] shadow-2xl relative overflow-hidden group transition-all duration-300 
               ${activeFilter === 'PENDING' ? 'border-amber-500/50 bg-amber-500/10' : 'border-white/5 hover:border-amber-500/30'}`}
@@ -1450,14 +1501,14 @@ export default function Home() {
 
         {/* --- MAIN CONTENT PANELS --- */}
         <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 sm:gap-8">
-          
+
           {/* LEADERBOARD PANEL (UNTOUCHED) */}
           <section className="xl:col-span-7 bg-zinc-900/40 backdrop-blur-2xl border border-white/5 rounded-[2rem] p-6 sm:p-8 shadow-2xl flex flex-col h-[500px]">
             <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center gap-3 mb-6">
               <div className="p-2 bg-yellow-500/10 text-yellow-500 rounded-xl border border-yellow-500/20"><Trophy size={20} /></div>
               Ward Performance
             </h2>
-            
+
             <div className="flex-1 overflow-x-auto overflow-y-auto custom-scrollbar pr-2">
               <table className="w-full text-left min-w-[500px]">
                 <thead className="sticky top-0 bg-zinc-900/90 backdrop-blur-xl z-10 text-zinc-500 text-xs uppercase tracking-widest font-bold border-b border-white/5">
@@ -1482,9 +1533,9 @@ export default function Home() {
                       <td className="py-4 px-2 w-1/2">
                         <div className="flex items-center gap-3">
                           <div className="flex-1 h-2 bg-zinc-800 rounded-full overflow-hidden">
-                            <div 
+                            <div
                               className={`h-full rounded-full transition-all duration-1000 ${w.resolutionRate >= 75 ? 'bg-gradient-to-r from-emerald-500 to-green-400' : w.resolutionRate >= 40 ? 'bg-gradient-to-r from-yellow-500 to-amber-400' : 'bg-gradient-to-r from-red-500 to-rose-400'}`}
-                              style={{ width: `${w.resolutionRate}%` }} 
+                              style={{ width: `${w.resolutionRate}%` }}
                             />
                           </div>
                           <span className="text-sm font-bold text-zinc-300 w-10 text-right">{w.resolutionRate}%</span>
@@ -1509,7 +1560,7 @@ export default function Home() {
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-indigo-500"></span>
                 </div>
               </div>
-              Live Feed 
+              Live Feed
               {/* ✅ NEW: Small indicator to show which filter is active */}
               {activeFilter !== 'ALL' && (
                 <span className={`text-xs px-2 py-1 rounded-full font-bold uppercase tracking-wider ml-2 ${activeFilter === 'RESOLVED' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
@@ -1519,34 +1570,72 @@ export default function Home() {
             </h2>
 
             <div className="flex-1 space-y-3 overflow-y-auto pr-2 custom-scrollbar">
-              {recent.map((c) => (
-                <Link
-                  key={c.id}
-                  href={`/complaints/${c.id}`}
-                  className="group block bg-zinc-950/50 p-4 rounded-2xl border border-white/5 hover:border-blue-500/30 hover:bg-zinc-900 transition-all duration-300 relative overflow-hidden"
-                >
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`w-2 h-2 rounded-full shrink-0 ${c.currentStatus === 'RESOLVED' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : c.currentStatus === 'WORK_IN_PROGRESS' ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]'}`} />
-                        <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider truncate">{c.ward?.name || "Zone"} • {new Date(c.createdAt).toLocaleDateString()}</span>
+              {recent.map((c) => {
+                const distanceText = getDistanceText(c.lat, c.lng);
+
+                return (
+                  <Link
+                    key={c.id}
+                    href={`/complaints/${c.id}`}
+                    className="group block bg-zinc-950/50 p-3 sm:p-4 rounded-2xl border border-white/5 hover:border-blue-500/30 hover:bg-zinc-900 transition-all duration-300 relative overflow-hidden"
+                  >
+                    <div className="flex justify-between items-start gap-3 sm:gap-4">
+
+                      {/* THUMBNAIL CONTAINER */}
+                      {c.media && c.media.length > 0 ? (
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-xl overflow-hidden border border-white/10 relative bg-zinc-900 shadow-inner">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={c.media[0].url}
+                            alt={c.title}
+                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 sm:w-14 sm:h-14 shrink-0 rounded-xl border border-white/5 bg-zinc-900/50 flex items-center justify-center text-zinc-700 shadow-inner">
+                          <Camera size={18} className="sm:w-5 sm:h-5" />
+                        </div>
+                      )}
+
+                      {/* ISSUE DETAILS */}
+                      <div className="flex-1 min-w-0 py-0.5">
+                        <div className="flex items-center gap-2 mb-1.5 sm:mb-1">
+                          <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full shrink-0 ${c.currentStatus === 'RESOLVED' ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : c.currentStatus === 'WORK_IN_PROGRESS' ? 'bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'bg-amber-500 shadow-[0_0_10px_rgba(245,158,11,0.5)]'}`} />
+
+                          <div className="flex items-center text-[9px] sm:text-[10px] font-bold text-zinc-500 uppercase tracking-wider truncate">
+                            {/* ✅ NEW: DISTANCE BADGE */}
+                            {distanceText && (
+                              <span className="flex items-center text-blue-400 bg-blue-500/10 px-1.5 py-0.5 rounded mr-2">
+                                <Navigation size={8} className="mr-1 sm:w-3 sm:h-3" />
+                                {distanceText}
+                              </span>
+                            )}
+                            <span className="truncate">
+                              {c.ward?.name || "Zone"} • {new Date(c.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            </span>
+                          </div>
+
+                        </div>
+                        <h3 className="font-bold text-zinc-200 group-hover:text-blue-400 transition-colors truncate text-sm sm:text-base leading-tight">
+                          {c.title}
+                        </h3>
                       </div>
-                      <h3 className="font-bold text-zinc-200 group-hover:text-blue-400 transition-colors truncate text-base">{c.title}</h3>
+
+                      {/* STATUS BADGE & ARROW */}
+                      <div className="flex flex-col items-end gap-2 shrink-0 py-0.5">
+                        <span className={`px-2 py-1 sm:px-2.5 sm:py-1 rounded-lg text-[8px] sm:text-[9px] font-bold tracking-widest uppercase border ${c.currentStatus === 'RESOLVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' :
+                          c.currentStatus === 'WORK_IN_PROGRESS' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                            'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          }`}>
+                          {c.currentStatus.replace(/_/g, " ")}
+                        </span>
+                        <ArrowRight size={14} className="text-zinc-600 opacity-0 group-hover:opacity-100 group-hover:-translate-x-1 transition-all hidden sm:block" />
+                      </div>
+
                     </div>
-                    
-                    <div className="flex flex-col items-end gap-2 shrink-0">
-                      <span className={`px-2.5 py-1 rounded-lg text-[9px] font-bold tracking-widest uppercase border ${
-                        c.currentStatus === 'RESOLVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
-                        c.currentStatus === 'WORK_IN_PROGRESS' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 
-                        'bg-amber-500/10 text-amber-400 border-amber-500/20'
-                      }`}>
-                        {c.currentStatus.replace(/_/g, " ")}
-                      </span>
-                      <ArrowRight size={14} className="text-zinc-600 opacity-0 group-hover:opacity-100 group-hover:-translate-x-1 transition-all" />
-                    </div>
-                  </div>
-                </Link>
-              ))}
+                  </Link>
+                );
+              })}
               {recent.length === 0 && (
                 <div className="py-10 text-center text-zinc-600 font-medium">System idle. No matching reports.</div>
               )}

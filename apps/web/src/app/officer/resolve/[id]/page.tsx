@@ -1,3 +1,255 @@
+// // // // // // // "use client";
+
+// // // // // // // import { useEffect, useState } from "react";
+// // // // // // // import { useParams, useRouter } from "next/navigation";
+// // // // // // // import Link from "next/link";
+
+// // // // // // // const API = process.env.NEXT_PUBLIC_API_BASE!;
+
+// // // // // // // export default function OfficerWorkPage() {
+// // // // // // //   const { id } = useParams();
+// // // // // // //   const router = useRouter();
+// // // // // // //   const [c, setComplaint] = useState<any>(null);
+// // // // // // //   const [loading, setLoading] = useState(true);
+
+// // // // // // //   // Form States
+// // // // // // //   const [note, setNote] = useState("");
+// // // // // // //   const [file, setFile] = useState<File | null>(null);
+// // // // // // //   const [submitting, setSubmitting] = useState(false);
+
+// // // // // // //   // Load Data
+// // // // // // //   useEffect(() => {
+// // // // // // //     const token = localStorage.getItem("civic_token");
+// // // // // // //     if (!token) {
+// // // // // // //         router.push("/login");
+// // // // // // //         return;
+// // // // // // //     }
+
+// // // // // // //     fetch(`${API}/complaints/${id}`, {
+// // // // // // //       headers: { Authorization: `Bearer ${token}` }
+// // // // // // //     })
+// // // // // // //     .then(res => {
+// // // // // // //         if (!res.ok) throw new Error("Failed to load");
+// // // // // // //         return res.json();
+// // // // // // //     })
+// // // // // // //     .then(data => {
+// // // // // // //       setComplaint(data);
+// // // // // // //       setLoading(false);
+// // // // // // //     })
+// // // // // // //     .catch(err => {
+// // // // // // //         alert("Failed to load ticket details.");
+// // // // // // //         router.push("/officer");
+// // // // // // //     });
+// // // // // // //   }, [id, router]);
+
+// // // // // // //   // Helper: File to Base64
+// // // // // // //   function fileToBase64(file: File): Promise<string> {
+// // // // // // //     return new Promise((resolve, reject) => {
+// // // // // // //       const reader = new FileReader();
+// // // // // // //       reader.onload = () => resolve(String(reader.result));
+// // // // // // //       reader.onerror = reject;
+// // // // // // //       reader.readAsDataURL(file);
+// // // // // // //     });
+// // // // // // //   }
+
+// // // // // // //   // Helper: Post Action
+// // // // // // //   async function postAction(url: string, body: any) {
+// // // // // // //     const token = localStorage.getItem("civic_token");
+// // // // // // //     const res = await fetch(`${API}${url}`, {
+// // // // // // //       method: "POST",
+// // // // // // //       headers: { 
+// // // // // // //         "Content-Type": "application/json",
+// // // // // // //         "Authorization": `Bearer ${token}` 
+// // // // // // //       },
+// // // // // // //       body: JSON.stringify(body),
+// // // // // // //     });
+// // // // // // //     if (!res.ok) {
+// // // // // // //       const err = await res.json();
+// // // // // // //       throw new Error(err.message || "Request failed");
+// // // // // // //     }
+// // // // // // //     return res.json();
+// // // // // // //   }
+
+// // // // // // //   // --- ACTIONS ---
+
+// // // // // // //   async function startInspection() {
+// // // // // // //     setSubmitting(true);
+// // // // // // //     try {
+// // // // // // //       // ✅ CRITICAL FIX: Using 'WORK_IN_PROGRESS' strictly as per DB enum
+// // // // // // //       await postAction(`/complaints/${id}/advance`, { 
+// // // // // // //         nextStatus: "WORK_IN_PROGRESS", 
+// // // // // // //         note: "Officer arrived on site. Inspection started." 
+// // // // // // //       });
+// // // // // // //       alert("🚧 Inspection Started");
+// // // // // // //       window.location.reload(); // Reload to show the resolution form
+// // // // // // //     } catch (e: any) {
+// // // // // // //       alert("Error: " + e.message);
+// // // // // // //     } finally {
+// // // // // // //       setSubmitting(false);
+// // // // // // //     }
+// // // // // // //   }
+
+// // // // // // //   async function resolveJob() {
+// // // // // // //     if (!file) return alert("📸 Proof photo is required!");
+// // // // // // //     setSubmitting(true);
+// // // // // // //     try {
+// // // // // // //       // Get GPS
+// // // // // // //       const pos: any = await new Promise((resolve, reject) => {
+// // // // // // //         navigator.geolocation.getCurrentPosition(resolve, reject);
+// // // // // // //       });
+
+// // // // // // //       const fullBase64 = await fileToBase64(file);
+// // // // // // //       const mediaBase64 = fullBase64.split(",")[1];
+
+// // // // // // //       await postAction(`/complaints/${id}/resolve`, {
+// // // // // // //         lat: pos.coords.latitude,
+// // // // // // //         lng: pos.coords.longitude,
+// // // // // // //         mediaBase64,
+// // // // // // //         note: note || "Resolved via Officer Console",
+// // // // // // //       });
+
+// // // // // // //       alert("🎉 Job Closed Successfully!");
+// // // // // // //       router.push("/officer");
+// // // // // // //     } catch (e: any) {
+// // // // // // //       alert("Error: " + e.message);
+// // // // // // //     } finally {
+// // // // // // //       setSubmitting(false);
+// // // // // // //     }
+// // // // // // //   }
+
+// // // // // // //   if (loading) return <div className="min-h-screen bg-black text-white p-10">Loading Ticket Details...</div>;
+// // // // // // //   if (!c) return <div className="min-h-screen bg-black text-white p-10">Ticket not found.</div>;
+
+// // // // // // //   return (
+// // // // // // //     <main className="min-h-screen bg-black text-zinc-200 font-sans pb-20">
+
+// // // // // // //       {/* Top Bar */}
+// // // // // // //       <div className="bg-zinc-900 border-b border-zinc-800 p-4 flex items-center gap-4 sticky top-0 z-10">
+// // // // // // //         <Link href="/officer" className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400">
+// // // // // // //           &larr; Back
+// // // // // // //         </Link>
+// // // // // // //         <div>
+// // // // // // //           <h1 className="text-white font-bold text-lg leading-tight">{c.title}</h1>
+// // // // // // //           <div className="text-xs text-zinc-500 uppercase tracking-wide font-semibold">
+// // // // // // //             {c.ward?.name || "Unknown Ward"} • {c.category}
+// // // // // // //           </div>
+// // // // // // //         </div>
+// // // // // // //         <div className="ml-auto">
+// // // // // // //              <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${
+// // // // // // //                 c.currentStatus === 'WORK_IN_PROGRESS' ? 'bg-purple-900/30 text-purple-400 border-purple-800' :
+// // // // // // //                 c.currentStatus === 'RESOLVED' ? 'bg-green-900/30 text-green-400 border-green-800' :
+// // // // // // //                 'bg-yellow-900/30 text-yellow-400 border-yellow-800'
+// // // // // // //              }`}>
+// // // // // // //                 {c.currentStatus.replace(/_/g, " ")}
+// // // // // // //              </span>
+// // // // // // //         </div>
+// // // // // // //       </div>
+
+// // // // // // //       <div className="max-w-2xl mx-auto p-6 space-y-8">
+
+// // // // // // //         {/* 1. Complaint Details */}
+// // // // // // //         <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-lg">
+// // // // // // //           <h2 className="text-zinc-500 text-xs font-bold uppercase mb-4">Ticket Details</h2>
+// // // // // // //           <p className="text-white text-lg mb-4">{c.description}</p>
+
+// // // // // // //           <div className="grid grid-cols-2 gap-4 text-sm">
+// // // // // // //              <div className="bg-black p-3 rounded-lg border border-zinc-800">
+// // // // // // //                 <div className="text-zinc-500 text-xs">Reported Date</div>
+// // // // // // //                 <div className="text-zinc-300">{new Date(c.createdAt).toLocaleString()}</div>
+// // // // // // //              </div>
+// // // // // // //              <div className="bg-black p-3 rounded-lg border border-zinc-800">
+// // // // // // //                 <div className="text-zinc-500 text-xs">Location</div>
+// // // // // // //                 <div className="text-zinc-300">{c.locationText || "GPS Pin Only"}</div>
+// // // // // // //              </div>
+// // // // // // //           </div>
+// // // // // // //         </section>
+
+// // // // // // //         {/* 2. THE ACTION ZONE */}
+// // // // // // //         <section>
+// // // // // // //           {/* STEP 1: If Status is ACKNOWLEDGED -> Show Start Button */}
+// // // // // // //           {c.currentStatus === 'ACKNOWLEDGED' && (
+// // // // // // //             <div className="bg-yellow-950/20 border border-yellow-900/50 p-8 rounded-xl text-center space-y-4">
+// // // // // // //                <div className="text-4xl">🚧</div>
+// // // // // // //                <h3 className="text-xl font-bold text-yellow-200">Ready to Start?</h3>
+// // // // // // //                <p className="text-yellow-200/60 max-w-xs mx-auto">
+// // // // // // //                  Click below when you have arrived at the location and are beginning the inspection.
+// // // // // // //                </p>
+// // // // // // //                <button 
+// // // // // // //                   onClick={startInspection}
+// // // // // // //                   disabled={submitting}
+// // // // // // //                   className="w-full py-4 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl shadow-lg shadow-yellow-900/20 transition disabled:opacity-50"
+// // // // // // //                >
+// // // // // // //                   {submitting ? "Updating Status..." : "START FIELD INSPECTION"}
+// // // // // // //                </button>
+// // // // // // //             </div>
+// // // // // // //           )}
+
+// // // // // // //           {/* STEP 2: If Status is WORK_IN_PROGRESS or REOPENED -> Show Resolution Form */}
+// // // // // // //           {(c.currentStatus === 'WORK_IN_PROGRESS' || c.currentStatus === 'REOPENED') && (
+// // // // // // //             <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-xl space-y-6">
+// // // // // // //                <div className="flex items-center gap-3 text-purple-400 mb-2">
+// // // // // // //                   <span className="relative flex h-3 w-3">
+// // // // // // //                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
+// // // // // // //                     <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500"></span>
+// // // // // // //                   </span>
+// // // // // // //                   <span className="font-bold uppercase tracking-wider text-xs">Work In Progress</span>
+// // // // // // //                </div>
+
+// // // // // // //                <div>
+// // // // // // //                  <label className="block text-sm font-medium text-zinc-400 mb-2">Resolution Notes</label>
+// // // // // // //                  <textarea 
+// // // // // // //                     value={note}
+// // // // // // //                     onChange={e => setNote(e.target.value)}
+// // // // // // //                     placeholder="Describe what you fixed (e.g. 'Filled pothole with 20kg asphalt')..."
+// // // // // // //                     className="w-full h-32 bg-black border border-zinc-700 rounded-lg p-3 text-white focus:border-green-500 outline-none"
+// // // // // // //                  />
+// // // // // // //                </div>
+
+// // // // // // //                <div>
+// // // // // // //                  <label className="block text-sm font-medium text-zinc-400 mb-2">Proof of Work (Required)</label>
+// // // // // // //                  <div className="relative group cursor-pointer">
+// // // // // // //                     <input 
+// // // // // // //                       type="file" 
+// // // // // // //                       accept="image/*"
+// // // // // // //                       onChange={e => setFile(e.target.files?.[0] || null)}
+// // // // // // //                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+// // // // // // //                     />
+// // // // // // //                     <div className={`border-2 border-dashed rounded-xl p-8 text-center transition ${file ? 'border-green-500 bg-green-900/10' : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800'}`}>
+// // // // // // //                        {file ? (
+// // // // // // //                           <div className="text-green-400 font-medium">✅ {file.name} ready to upload</div>
+// // // // // // //                        ) : (
+// // // // // // //                           <div className="text-zinc-500">
+// // // // // // //                              <span className="text-2xl block mb-2">📸</span>
+// // // // // // //                              Tap to take photo
+// // // // // // //                           </div>
+// // // // // // //                        )}
+// // // // // // //                     </div>
+// // // // // // //                  </div>
+// // // // // // //                </div>
+
+// // // // // // //                <button 
+// // // // // // //                   onClick={resolveJob}
+// // // // // // //                   disabled={submitting}
+// // // // // // //                   className="w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl shadow-lg shadow-green-900/20 transition disabled:opacity-50"
+// // // // // // //                >
+// // // // // // //                   {submitting ? "Uploading Proof..." : "COMPLETE JOB & CLOSE TICKET"}
+// // // // // // //                </button>
+// // // // // // //             </div>
+// // // // // // //           )}
+
+// // // // // // //           {/* STEP 3: If Status is RESOLVED -> Show Success Message */}
+// // // // // // //           {c.currentStatus === 'RESOLVED' && (
+// // // // // // //              <div className="p-10 text-center border border-zinc-800 rounded-xl bg-zinc-900 text-zinc-500">
+// // // // // // //                 ✅ This ticket is closed. Great work!
+// // // // // // //              </div>
+// // // // // // //           )}
+// // // // // // //         </section>
+
+// // // // // // //       </div>
+// // // // // // //     </main>
+// // // // // // //   );
+// // // // // // // }
+
 // // // // // // "use client";
 
 // // // // // // import { useEffect, useState } from "react";
@@ -37,6 +289,7 @@
 // // // // // //       setLoading(false);
 // // // // // //     })
 // // // // // //     .catch(err => {
+// // // // // //         // console.error(err); // optional logging
 // // // // // //         alert("Failed to load ticket details.");
 // // // // // //         router.push("/officer");
 // // // // // //     });
@@ -72,16 +325,17 @@
 
 // // // // // //   // --- ACTIONS ---
 
-// // // // // //   async function startInspection() {
+// // // // // //   // ✅ NEW: Generic Handler for Strict Stages (Inspection, Work Started)
+// // // // // //   async function advanceStage(targetStatus: string, label: string) {
+// // // // // //     if (!confirm(`Are you ready to ${label}?`)) return;
 // // // // // //     setSubmitting(true);
 // // // // // //     try {
-// // // // // //       // ✅ CRITICAL FIX: Using 'WORK_IN_PROGRESS' strictly as per DB enum
 // // // // // //       await postAction(`/complaints/${id}/advance`, { 
-// // // // // //         nextStatus: "WORK_IN_PROGRESS", 
-// // // // // //         note: "Officer arrived on site. Inspection started." 
+// // // // // //         nextStatus: targetStatus, 
+// // // // // //         note: `Officer advanced stage to ${targetStatus}` 
 // // // // // //       });
-// // // // // //       alert("🚧 Inspection Started");
-// // // // // //       window.location.reload(); // Reload to show the resolution form
+// // // // // //       // Reload to show the next UI state
+// // // // // //       window.location.reload(); 
 // // // // // //     } catch (e: any) {
 // // // // // //       alert("Error: " + e.message);
 // // // // // //     } finally {
@@ -89,6 +343,7 @@
 // // // // // //     }
 // // // // // //   }
 
+// // // // // //   // ✅ EXISTING: Final Resolution with Photo & GPS
 // // // // // //   async function resolveJob() {
 // // // // // //     if (!file) return alert("📸 Proof photo is required!");
 // // // // // //     setSubmitting(true);
@@ -138,7 +393,7 @@
 // // // // // //              <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${
 // // // // // //                 c.currentStatus === 'WORK_IN_PROGRESS' ? 'bg-purple-900/30 text-purple-400 border-purple-800' :
 // // // // // //                 c.currentStatus === 'RESOLVED' ? 'bg-green-900/30 text-green-400 border-green-800' :
-// // // // // //                 'bg-yellow-900/30 text-yellow-400 border-yellow-800'
+// // // // // //                 'bg-blue-900/30 text-blue-400 border-blue-800'
 // // // // // //              }`}>
 // // // // // //                 {c.currentStatus.replace(/_/g, " ")}
 // // // // // //              </span>
@@ -164,27 +419,46 @@
 // // // // // //           </div>
 // // // // // //         </section>
 
-// // // // // //         {/* 2. THE ACTION ZONE */}
+// // // // // //         {/* 2. THE ACTION ZONE - STRICT PROTOCOL */}
 // // // // // //         <section>
-// // // // // //           {/* STEP 1: If Status is ACKNOWLEDGED -> Show Start Button */}
-// // // // // //           {c.currentStatus === 'ACKNOWLEDGED' && (
-// // // // // //             <div className="bg-yellow-950/20 border border-yellow-900/50 p-8 rounded-xl text-center space-y-4">
-// // // // // //                <div className="text-4xl">🚧</div>
-// // // // // //                <h3 className="text-xl font-bold text-yellow-200">Ready to Start?</h3>
-// // // // // //                <p className="text-yellow-200/60 max-w-xs mx-auto">
-// // // // // //                  Click below when you have arrived at the location and are beginning the inspection.
+
+// // // // // //           {/* STAGE 1: ASSIGNED -> START INSPECTION */}
+// // // // // //           {c.currentStatus === 'ASSIGNED' && (
+// // // // // //             <div className="bg-indigo-950/20 border border-indigo-900/50 p-8 rounded-xl text-center space-y-4">
+// // // // // //                <div className="text-4xl">🔍</div>
+// // // // // //                <h3 className="text-xl font-bold text-indigo-200">Arrived at Location?</h3>
+// // // // // //                <p className="text-indigo-200/60 max-w-xs mx-auto">
+// // // // // //                  Protocol requires you to visually inspect the issue before starting work.
 // // // // // //                </p>
 // // // // // //                <button 
-// // // // // //                   onClick={startInspection}
+// // // // // //                   onClick={() => advanceStage('INSPECTION', 'Start Inspection')}
 // // // // // //                   disabled={submitting}
-// // // // // //                   className="w-full py-4 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl shadow-lg shadow-yellow-900/20 transition disabled:opacity-50"
+// // // // // //                   className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-900/20 transition disabled:opacity-50"
 // // // // // //                >
-// // // // // //                   {submitting ? "Updating Status..." : "START FIELD INSPECTION"}
+// // // // // //                   {submitting ? "Updating..." : "START INSPECTION"}
 // // // // // //                </button>
 // // // // // //             </div>
 // // // // // //           )}
 
-// // // // // //           {/* STEP 2: If Status is WORK_IN_PROGRESS or REOPENED -> Show Resolution Form */}
+// // // // // //           {/* STAGE 2: INSPECTION -> START WORK */}
+// // // // // //           {c.currentStatus === 'INSPECTION' && (
+// // // // // //             <div className="bg-yellow-950/20 border border-yellow-900/50 p-8 rounded-xl text-center space-y-4">
+// // // // // //                <div className="text-4xl">🚧</div>
+// // // // // //                <h3 className="text-xl font-bold text-yellow-200">Inspection Complete?</h3>
+// // // // // //                <p className="text-yellow-200/60 max-w-xs mx-auto">
+// // // // // //                  Click below to officially begin the repair work. This will alert the dashboard.
+// // // // // //                </p>
+// // // // // //                <button 
+// // // // // //                   onClick={() => advanceStage('WORK_IN_PROGRESS', 'Start Work')}
+// // // // // //                   disabled={submitting}
+// // // // // //                   className="w-full py-4 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl shadow-lg shadow-yellow-900/20 transition disabled:opacity-50"
+// // // // // //                >
+// // // // // //                   {submitting ? "Updating..." : "START REPAIR WORK"}
+// // // // // //                </button>
+// // // // // //             </div>
+// // // // // //           )}
+
+// // // // // //           {/* STAGE 3: WORK IN PROGRESS -> RESOLVE (FORM) */}
 // // // // // //           {(c.currentStatus === 'WORK_IN_PROGRESS' || c.currentStatus === 'REOPENED') && (
 // // // // // //             <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-xl space-y-6">
 // // // // // //                <div className="flex items-center gap-3 text-purple-400 mb-2">
@@ -198,10 +472,10 @@
 // // // // // //                <div>
 // // // // // //                  <label className="block text-sm font-medium text-zinc-400 mb-2">Resolution Notes</label>
 // // // // // //                  <textarea 
-// // // // // //                     value={note}
-// // // // // //                     onChange={e => setNote(e.target.value)}
-// // // // // //                     placeholder="Describe what you fixed (e.g. 'Filled pothole with 20kg asphalt')..."
-// // // // // //                     className="w-full h-32 bg-black border border-zinc-700 rounded-lg p-3 text-white focus:border-green-500 outline-none"
+// // // // // //                    value={note}
+// // // // // //                    onChange={e => setNote(e.target.value)}
+// // // // // //                    placeholder="Describe what you fixed (e.g. 'Filled pothole with 20kg asphalt')..."
+// // // // // //                    className="w-full h-32 bg-black border border-zinc-700 rounded-lg p-3 text-white focus:border-green-500 outline-none"
 // // // // // //                  />
 // // // // // //                </div>
 
@@ -237,7 +511,7 @@
 // // // // // //             </div>
 // // // // // //           )}
 
-// // // // // //           {/* STEP 3: If Status is RESOLVED -> Show Success Message */}
+// // // // // //           {/* STAGE 4: RESOLVED -> Success Message */}
 // // // // // //           {c.currentStatus === 'RESOLVED' && (
 // // // // // //              <div className="p-10 text-center border border-zinc-800 rounded-xl bg-zinc-900 text-zinc-500">
 // // // // // //                 ✅ This ticket is closed. Great work!
@@ -255,12 +529,32 @@
 // // // // // import { useEffect, useState } from "react";
 // // // // // import { useParams, useRouter } from "next/navigation";
 // // // // // import Link from "next/link";
+// // // // // import { 
+// // // // //   ArrowLeft, 
+// // // // //   MapPin, 
+// // // // //   Calendar, 
+// // // // //   CheckCircle2, 
+// // // // //   Circle, 
+// // // // //   Camera, 
+// // // // //   Hammer, 
+// // // // //   Search, 
+// // // // //   Check 
+// // // // // } from "lucide-react";
 
 // // // // // const API = process.env.NEXT_PUBLIC_API_BASE!;
 
-// // // // // export default function OfficerWorkPage() {
+// // // // // // Define the linear process stages
+// // // // // const STAGES = [
+// // // // //   { id: 'ASSIGNED', label: 'Assigned', icon: MapPin },
+// // // // //   { id: 'INSPECTION', label: 'Inspection', icon: Search },
+// // // // //   { id: 'WORK_IN_PROGRESS', label: 'Work', icon: Hammer },
+// // // // //   { id: 'RESOLVED', label: 'Resolved', icon: CheckCircle2 },
+// // // // // ];
+
+// // // // // export default function OfficerResolvePage() {
 // // // // //   const { id } = useParams();
 // // // // //   const router = useRouter();
+
 // // // // //   const [c, setComplaint] = useState<any>(null);
 // // // // //   const [loading, setLoading] = useState(true);
 
@@ -289,13 +583,12 @@
 // // // // //       setLoading(false);
 // // // // //     })
 // // // // //     .catch(err => {
-// // // // //         // console.error(err); // optional logging
 // // // // //         alert("Failed to load ticket details.");
 // // // // //         router.push("/officer");
 // // // // //     });
 // // // // //   }, [id, router]);
 
-// // // // //   // Helper: File to Base64
+// // // // //   // Helpers
 // // // // //   function fileToBase64(file: File): Promise<string> {
 // // // // //     return new Promise((resolve, reject) => {
 // // // // //       const reader = new FileReader();
@@ -305,7 +598,6 @@
 // // // // //     });
 // // // // //   }
 
-// // // // //   // Helper: Post Action
 // // // // //   async function postAction(url: string, body: any) {
 // // // // //     const token = localStorage.getItem("civic_token");
 // // // // //     const res = await fetch(`${API}${url}`, {
@@ -323,18 +615,15 @@
 // // // // //     return res.json();
 // // // // //   }
 
-// // // // //   // --- ACTIONS ---
-
-// // // // //   // ✅ NEW: Generic Handler for Strict Stages (Inspection, Work Started)
+// // // // //   // Actions
 // // // // //   async function advanceStage(targetStatus: string, label: string) {
-// // // // //     if (!confirm(`Are you ready to ${label}?`)) return;
+// // // // //     if (!confirm(`Confirm: ${label}?`)) return;
 // // // // //     setSubmitting(true);
 // // // // //     try {
 // // // // //       await postAction(`/complaints/${id}/advance`, { 
 // // // // //         nextStatus: targetStatus, 
 // // // // //         note: `Officer advanced stage to ${targetStatus}` 
 // // // // //       });
-// // // // //       // Reload to show the next UI state
 // // // // //       window.location.reload(); 
 // // // // //     } catch (e: any) {
 // // // // //       alert("Error: " + e.message);
@@ -343,12 +632,10 @@
 // // // // //     }
 // // // // //   }
 
-// // // // //   // ✅ EXISTING: Final Resolution with Photo & GPS
 // // // // //   async function resolveJob() {
 // // // // //     if (!file) return alert("📸 Proof photo is required!");
 // // // // //     setSubmitting(true);
 // // // // //     try {
-// // // // //       // Get GPS
 // // // // //       const pos: any = await new Promise((resolve, reject) => {
 // // // // //         navigator.geolocation.getCurrentPosition(resolve, reject);
 // // // // //       });
@@ -372,152 +659,218 @@
 // // // // //     }
 // // // // //   }
 
-// // // // //   if (loading) return <div className="min-h-screen bg-black text-white p-10">Loading Ticket Details...</div>;
-// // // // //   if (!c) return <div className="min-h-screen bg-black text-white p-10">Ticket not found.</div>;
+// // // // //   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500">Loading Protocol...</div>;
+// // // // //   if (!c) return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500">Ticket not found.</div>;
+
+// // // // //   // Calculate Progress Index
+// // // // //   const currentStageIndex = STAGES.findIndex(s => s.id === c.currentStatus);
+// // // // //   const progressPercent = (currentStageIndex / (STAGES.length - 1)) * 100;
 
 // // // // //   return (
 // // // // //     <main className="min-h-screen bg-black text-zinc-200 font-sans pb-20">
 
-// // // // //       {/* Top Bar */}
-// // // // //       <div className="bg-zinc-900 border-b border-zinc-800 p-4 flex items-center gap-4 sticky top-0 z-10">
-// // // // //         <Link href="/officer" className="p-2 hover:bg-zinc-800 rounded-lg text-zinc-400">
-// // // // //           &larr; Back
+// // // // //       {/* Navbar */}
+// // // // //       <nav className="sticky top-0 z-20 bg-black/80 backdrop-blur-md border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+// // // // //         <Link href="/officer" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
+// // // // //           <ArrowLeft size={18} />
+// // // // //           <span className="font-medium text-sm">Back to Queue</span>
 // // // // //         </Link>
-// // // // //         <div>
-// // // // //           <h1 className="text-white font-bold text-lg leading-tight">{c.title}</h1>
-// // // // //           <div className="text-xs text-zinc-500 uppercase tracking-wide font-semibold">
-// // // // //             {c.ward?.name || "Unknown Ward"} • {c.category}
+// // // // //         <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+// // // // //           {c.id.slice(0, 8)}
+// // // // //         </div>
+// // // // //       </nav>
+
+// // // // //       <div className="max-w-xl mx-auto p-6 space-y-8">
+
+// // // // //         {/* 1. Header Card */}
+// // // // //         <header>
+// // // // //           <div className="flex items-start justify-between mb-2">
+// // // // //             <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-900/30 text-blue-400 border border-blue-800">
+// // // // //               {c.category}
+// // // // //             </span>
+// // // // //             <span className="text-xs text-zinc-500 font-mono">
+// // // // //               {new Date(c.createdAt).toLocaleDateString()}
+// // // // //             </span>
+// // // // //           </div>
+// // // // //           <h1 className="text-2xl font-bold text-white leading-tight mb-2">{c.title}</h1>
+// // // // //           <div className="flex items-center gap-2 text-sm text-zinc-400">
+// // // // //             <MapPin size={14} className="text-zinc-600" />
+// // // // //             <span>{c.ward?.name || "Unknown Ward"}</span>
+// // // // //             <span className="text-zinc-600">•</span>
+// // // // //             <span>{c.locationText || "GPS Pin"}</span>
+// // // // //           </div>
+// // // // //         </header>
+
+// // // // //         {/* 2. PROGRESS STEPPER (The "Advanced" UI) */}
+// // // // //         <div className="relative pt-2 pb-6">
+// // // // //           {/* Background Line */}
+// // // // //           <div className="absolute top-5 left-0 right-0 h-0.5 bg-zinc-800 rounded-full" />
+
+// // // // //           {/* Animated Progress Line */}
+// // // // //           <div 
+// // // // //             className="absolute top-5 left-0 h-0.5 bg-blue-500 rounded-full transition-all duration-700 ease-out"
+// // // // //             style={{ width: `${progressPercent}%` }}
+// // // // //           />
+
+// // // // //           {/* Steps */}
+// // // // //           <div className="relative flex justify-between z-10">
+// // // // //             {STAGES.map((stage, idx) => {
+// // // // //               const isCompleted = idx <= currentStageIndex;
+// // // // //               const isCurrent = idx === currentStageIndex;
+
+// // // // //               return (
+// // // // //                 <div key={stage.id} className="flex flex-col items-center gap-2">
+// // // // //                   <div className={`
+// // // // //                     w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500
+// // // // //                     ${isCompleted ? 'bg-zinc-900 border-blue-500 text-blue-400' : 'bg-black border-zinc-800 text-zinc-700'}
+// // // // //                     ${isCurrent ? 'ring-4 ring-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : ''}
+// // // // //                   `}>
+// // // // //                     <stage.icon size={16} strokeWidth={isCurrent ? 2.5 : 2} />
+// // // // //                   </div>
+// // // // //                   <div className={`
+// // // // //                     text-[10px] font-bold uppercase tracking-wider transition-colors duration-300
+// // // // //                     ${isCompleted ? 'text-zinc-300' : 'text-zinc-700'}
+// // // // //                   `}>
+// // // // //                     {stage.label}
+// // // // //                   </div>
+// // // // //                 </div>
+// // // // //               );
+// // // // //             })}
 // // // // //           </div>
 // // // // //         </div>
-// // // // //         <div className="ml-auto">
-// // // // //              <span className={`px-3 py-1 rounded-full text-[10px] font-bold border ${
-// // // // //                 c.currentStatus === 'WORK_IN_PROGRESS' ? 'bg-purple-900/30 text-purple-400 border-purple-800' :
-// // // // //                 c.currentStatus === 'RESOLVED' ? 'bg-green-900/30 text-green-400 border-green-800' :
-// // // // //                 'bg-blue-900/30 text-blue-400 border-blue-800'
-// // // // //              }`}>
-// // // // //                 {c.currentStatus.replace(/_/g, " ")}
-// // // // //              </span>
-// // // // //         </div>
-// // // // //       </div>
 
-// // // // //       <div className="max-w-2xl mx-auto p-6 space-y-8">
+// // // // //         {/* 3. DYNAMIC ACTION AREA */}
+// // // // //         <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-1 overflow-hidden">
 
-// // // // //         {/* 1. Complaint Details */}
-// // // // //         <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 shadow-lg">
-// // // // //           <h2 className="text-zinc-500 text-xs font-bold uppercase mb-4">Ticket Details</h2>
-// // // // //           <p className="text-white text-lg mb-4">{c.description}</p>
-
-// // // // //           <div className="grid grid-cols-2 gap-4 text-sm">
-// // // // //              <div className="bg-black p-3 rounded-lg border border-zinc-800">
-// // // // //                 <div className="text-zinc-500 text-xs">Reported Date</div>
-// // // // //                 <div className="text-zinc-300">{new Date(c.createdAt).toLocaleString()}</div>
-// // // // //              </div>
-// // // // //              <div className="bg-black p-3 rounded-lg border border-zinc-800">
-// // // // //                 <div className="text-zinc-500 text-xs">Location</div>
-// // // // //                 <div className="text-zinc-300">{c.locationText || "GPS Pin Only"}</div>
-// // // // //              </div>
-// // // // //           </div>
-// // // // //         </section>
-
-// // // // //         {/* 2. THE ACTION ZONE - STRICT PROTOCOL */}
-// // // // //         <section>
-
-// // // // //           {/* STAGE 1: ASSIGNED -> START INSPECTION */}
+// // // // //           {/* A. ASSIGNED -> START INSPECTION */}
 // // // // //           {c.currentStatus === 'ASSIGNED' && (
-// // // // //             <div className="bg-indigo-950/20 border border-indigo-900/50 p-8 rounded-xl text-center space-y-4">
-// // // // //                <div className="text-4xl">🔍</div>
-// // // // //                <h3 className="text-xl font-bold text-indigo-200">Arrived at Location?</h3>
-// // // // //                <p className="text-indigo-200/60 max-w-xs mx-auto">
-// // // // //                  Protocol requires you to visually inspect the issue before starting work.
-// // // // //                </p>
-// // // // //                <button 
-// // // // //                   onClick={() => advanceStage('INSPECTION', 'Start Inspection')}
-// // // // //                   disabled={submitting}
-// // // // //                   className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-indigo-900/20 transition disabled:opacity-50"
-// // // // //                >
-// // // // //                   {submitting ? "Updating..." : "START INSPECTION"}
-// // // // //                </button>
+// // // // //             <div className="p-8 text-center space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+// // // // //               <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto text-blue-400 animate-pulse">
+// // // // //                 <Search size={32} />
+// // // // //               </div>
+// // // // //               <div className="space-y-2">
+// // // // //                 <h3 className="text-xl font-bold text-white">Arrived on Site?</h3>
+// // // // //                 <p className="text-sm text-zinc-400 max-w-xs mx-auto">
+// // // // //                   Confirm you have reached the location to begin the initial assessment.
+// // // // //                 </p>
+// // // // //               </div>
+// // // // //               <button 
+// // // // //                 onClick={() => advanceStage('INSPECTION', 'Start Inspection')}
+// // // // //                 disabled={submitting}
+// // // // //                 className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
+// // // // //               >
+// // // // //                 {submitting ? "Starting..." : "Begin Inspection"}
+// // // // //               </button>
 // // // // //             </div>
 // // // // //           )}
 
-// // // // //           {/* STAGE 2: INSPECTION -> START WORK */}
+// // // // //           {/* B. INSPECTION -> START WORK */}
 // // // // //           {c.currentStatus === 'INSPECTION' && (
-// // // // //             <div className="bg-yellow-950/20 border border-yellow-900/50 p-8 rounded-xl text-center space-y-4">
-// // // // //                <div className="text-4xl">🚧</div>
-// // // // //                <h3 className="text-xl font-bold text-yellow-200">Inspection Complete?</h3>
-// // // // //                <p className="text-yellow-200/60 max-w-xs mx-auto">
-// // // // //                  Click below to officially begin the repair work. This will alert the dashboard.
-// // // // //                </p>
-// // // // //                <button 
-// // // // //                   onClick={() => advanceStage('WORK_IN_PROGRESS', 'Start Work')}
-// // // // //                   disabled={submitting}
-// // // // //                   className="w-full py-4 bg-yellow-600 hover:bg-yellow-500 text-white font-bold rounded-xl shadow-lg shadow-yellow-900/20 transition disabled:opacity-50"
-// // // // //                >
-// // // // //                   {submitting ? "Updating..." : "START REPAIR WORK"}
-// // // // //                </button>
+// // // // //             <div className="p-8 text-center space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+// // // // //               <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto text-amber-400">
+// // // // //                 <Hammer size={32} />
+// // // // //               </div>
+// // // // //               <div className="space-y-2">
+// // // // //                 <h3 className="text-xl font-bold text-white">Inspection Complete</h3>
+// // // // //                 <p className="text-sm text-zinc-400 max-w-xs mx-auto">
+// // // // //                   Ready to start the actual repair work? This will update the public status to "Work in Progress".
+// // // // //                 </p>
+// // // // //               </div>
+// // // // //               <button 
+// // // // //                 onClick={() => advanceStage('WORK_IN_PROGRESS', 'Start Work')}
+// // // // //                 disabled={submitting}
+// // // // //                 className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition active:scale-[0.98] disabled:opacity-50"
+// // // // //               >
+// // // // //                 {submitting ? "Updating..." : "Start Repairs"}
+// // // // //               </button>
 // // // // //             </div>
 // // // // //           )}
 
-// // // // //           {/* STAGE 3: WORK IN PROGRESS -> RESOLVE (FORM) */}
+// // // // //           {/* C. WORK -> RESOLVE (FORM) */}
 // // // // //           {(c.currentStatus === 'WORK_IN_PROGRESS' || c.currentStatus === 'REOPENED') && (
-// // // // //             <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-xl space-y-6">
-// // // // //                <div className="flex items-center gap-3 text-purple-400 mb-2">
-// // // // //                   <span className="relative flex h-3 w-3">
-// // // // //                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75"></span>
-// // // // //                     <span className="relative inline-flex rounded-full h-3 w-3 bg-purple-500"></span>
-// // // // //                   </span>
-// // // // //                   <span className="font-bold uppercase tracking-wider text-xs">Work In Progress</span>
-// // // // //                </div>
+// // // // //             <div className="p-6 space-y-6 animate-in slide-in-from-bottom-4 duration-500">
+// // // // //               <div className="flex items-center gap-3 pb-4 border-b border-zinc-800">
+// // // // //                 <div className="relative">
+// // // // //                   <span className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-20"></span>
+// // // // //                   <div className="relative bg-green-500/10 p-2 rounded-full text-green-500">
+// // // // //                     <Hammer size={18} />
+// // // // //                   </div>
+// // // // //                 </div>
+// // // // //                 <div>
+// // // // //                   <h3 className="font-bold text-white text-sm">Repair in Progress</h3>
+// // // // //                   <p className="text-xs text-zinc-500">Complete the form below to close.</p>
+// // // // //                 </div>
+// // // // //               </div>
 
-// // // // //                <div>
-// // // // //                  <label className="block text-sm font-medium text-zinc-400 mb-2">Resolution Notes</label>
-// // // // //                  <textarea 
-// // // // //                    value={note}
-// // // // //                    onChange={e => setNote(e.target.value)}
-// // // // //                    placeholder="Describe what you fixed (e.g. 'Filled pothole with 20kg asphalt')..."
-// // // // //                    className="w-full h-32 bg-black border border-zinc-700 rounded-lg p-3 text-white focus:border-green-500 outline-none"
-// // // // //                  />
-// // // // //                </div>
+// // // // //               <div className="space-y-4">
+// // // // //                 <div className="space-y-2">
+// // // // //                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Resolution Notes</label>
+// // // // //                   <textarea 
+// // // // //                     value={note}
+// // // // //                     onChange={e => setNote(e.target.value)}
+// // // // //                     placeholder="Describe the fix (e.g., 'Filled 2x2m pothole, applied sealant')..."
+// // // // //                     className="w-full h-32 bg-black border border-zinc-800 rounded-xl p-4 text-sm text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+// // // // //                   />
+// // // // //                 </div>
 
-// // // // //                <div>
-// // // // //                  <label className="block text-sm font-medium text-zinc-400 mb-2">Proof of Work (Required)</label>
-// // // // //                  <div className="relative group cursor-pointer">
+// // // // //                 <div className="space-y-2">
+// // // // //                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Proof of Work</label>
+// // // // //                   <div className="relative group">
 // // // // //                     <input 
 // // // // //                       type="file" 
 // // // // //                       accept="image/*"
 // // // // //                       onChange={e => setFile(e.target.files?.[0] || null)}
-// // // // //                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+// // // // //                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
 // // // // //                     />
-// // // // //                     <div className={`border-2 border-dashed rounded-xl p-8 text-center transition ${file ? 'border-green-500 bg-green-900/10' : 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800'}`}>
-// // // // //                        {file ? (
-// // // // //                           <div className="text-green-400 font-medium">✅ {file.name} ready to upload</div>
-// // // // //                        ) : (
-// // // // //                           <div className="text-zinc-500">
-// // // // //                              <span className="text-2xl block mb-2">📸</span>
-// // // // //                              Tap to take photo
-// // // // //                           </div>
-// // // // //                        )}
+// // // // //                     <div className={`
+// // // // //                       h-32 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 transition-all
+// // // // //                       ${file ? 'border-green-500 bg-green-900/10' : 'border-zinc-800 bg-black hover:border-zinc-600'}
+// // // // //                     `}>
+// // // // //                       {file ? (
+// // // // //                         <>
+// // // // //                           <CheckCircle2 size={24} className="text-green-500" />
+// // // // //                           <span className="text-sm font-medium text-green-400">{file.name}</span>
+// // // // //                         </>
+// // // // //                       ) : (
+// // // // //                         <>
+// // // // //                           <Camera size={24} className="text-zinc-600" />
+// // // // //                           <span className="text-sm text-zinc-500">Tap to upload photo</span>
+// // // // //                         </>
+// // // // //                       )}
 // // // // //                     </div>
-// // // // //                  </div>
-// // // // //                </div>
+// // // // //                   </div>
+// // // // //                 </div>
+// // // // //               </div>
 
-// // // // //                <button 
-// // // // //                   onClick={resolveJob}
-// // // // //                   disabled={submitting}
-// // // // //                   className="w-full py-4 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl shadow-lg shadow-green-900/20 transition disabled:opacity-50"
-// // // // //                >
-// // // // //                   {submitting ? "Uploading Proof..." : "COMPLETE JOB & CLOSE TICKET"}
-// // // // //                </button>
+// // // // //               <button 
+// // // // //                 onClick={resolveJob}
+// // // // //                 disabled={submitting}
+// // // // //                 className="w-full py-4 bg-white hover:bg-zinc-200 text-black font-bold rounded-xl transition active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-white/5"
+// // // // //               >
+// // // // //                 {submitting ? "Uploading..." : "Complete & Close Job"}
+// // // // //               </button>
 // // // // //             </div>
 // // // // //           )}
 
-// // // // //           {/* STAGE 4: RESOLVED -> Success Message */}
+// // // // //           {/* D. RESOLVED STATE */}
 // // // // //           {c.currentStatus === 'RESOLVED' && (
-// // // // //              <div className="p-10 text-center border border-zinc-800 rounded-xl bg-zinc-900 text-zinc-500">
-// // // // //                 ✅ This ticket is closed. Great work!
-// // // // //              </div>
+// // // // //             <div className="p-12 text-center space-y-4 animate-in zoom-in-95 duration-500">
+// // // // //               <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto text-green-500 mb-4">
+// // // // //                 <Check size={40} strokeWidth={3} />
+// // // // //               </div>
+// // // // //               <h3 className="text-2xl font-bold text-white">Job Closed!</h3>
+// // // // //               <p className="text-zinc-500 max-w-xs mx-auto">
+// // // // //                 Excellent work. This complaint has been marked as resolved and archived.
+// // // // //               </p>
+// // // // //               <Link href="/officer">
+// // // // //                 <button className="mt-6 px-8 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-full transition">
+// // // // //                   Return to Dashboard
+// // // // //                 </button>
+// // // // //               </Link>
+// // // // //             </div>
 // // // // //           )}
-// // // // //         </section>
+
+// // // // //         </div>
 
 // // // // //       </div>
 // // // // //     </main>
@@ -529,21 +882,20 @@
 // // // // import { useEffect, useState } from "react";
 // // // // import { useParams, useRouter } from "next/navigation";
 // // // // import Link from "next/link";
-// // // // import { 
-// // // //   ArrowLeft, 
-// // // //   MapPin, 
-// // // //   Calendar, 
-// // // //   CheckCircle2, 
-// // // //   Circle, 
-// // // //   Camera, 
-// // // //   Hammer, 
-// // // //   Search, 
-// // // //   Check 
+// // // // import {
+// // // //   ArrowLeft,
+// // // //   MapPin,
+// // // //   Search,
+// // // //   Hammer,
+// // // //   CheckCircle2,
+// // // //   Camera,
+// // // //   Check,
+// // // //   User
 // // // // } from "lucide-react";
 
 // // // // const API = process.env.NEXT_PUBLIC_API_BASE!;
 
-// // // // // Define the linear process stages
+// // // // // Define stages with IDs matching your DB status enums
 // // // // const STAGES = [
 // // // //   { id: 'ASSIGNED', label: 'Assigned', icon: MapPin },
 // // // //   { id: 'INSPECTION', label: 'Inspection', icon: Search },
@@ -558,7 +910,13 @@
 // // // //   const [c, setComplaint] = useState<any>(null);
 // // // //   const [loading, setLoading] = useState(true);
 
-// // // //   // Form States
+// // // //   // Interaction State
+// // // //   // We use this to decide which "Stage Form" to show. 
+// // // //   // Default is the current status from DB.
+// // // //   const [activeTab, setActiveTab] = useState<string>("");
+
+// // // //   // Form Data
+// // // //   const [officerName, setOfficerName] = useState("");
 // // // //   const [note, setNote] = useState("");
 // // // //   const [file, setFile] = useState<File | null>(null);
 // // // //   const [submitting, setSubmitting] = useState(false);
@@ -567,25 +925,27 @@
 // // // //   useEffect(() => {
 // // // //     const token = localStorage.getItem("civic_token");
 // // // //     if (!token) {
-// // // //         router.push("/login");
-// // // //         return;
+// // // //       router.push("/login");
+// // // //       return;
 // // // //     }
 
 // // // //     fetch(`${API}/complaints/${id}`, {
 // // // //       headers: { Authorization: `Bearer ${token}` }
 // // // //     })
-// // // //     .then(res => {
+// // // //       .then(res => {
 // // // //         if (!res.ok) throw new Error("Failed to load");
 // // // //         return res.json();
-// // // //     })
-// // // //     .then(data => {
-// // // //       setComplaint(data);
-// // // //       setLoading(false);
-// // // //     })
-// // // //     .catch(err => {
+// // // //       })
+// // // //       .then(data => {
+// // // //         setComplaint(data);
+// // // //         // Set the active tab to the current status initially
+// // // //         setActiveTab(data.currentStatus);
+// // // //         setLoading(false);
+// // // //       })
+// // // //       .catch(err => {
 // // // //         alert("Failed to load ticket details.");
 // // // //         router.push("/officer");
-// // // //     });
+// // // //       });
 // // // //   }, [id, router]);
 
 // // // //   // Helpers
@@ -602,9 +962,9 @@
 // // // //     const token = localStorage.getItem("civic_token");
 // // // //     const res = await fetch(`${API}${url}`, {
 // // // //       method: "POST",
-// // // //       headers: { 
+// // // //       headers: {
 // // // //         "Content-Type": "application/json",
-// // // //         "Authorization": `Bearer ${token}` 
+// // // //         "Authorization": `Bearer ${token}`
 // // // //       },
 // // // //       body: JSON.stringify(body),
 // // // //     });
@@ -615,16 +975,27 @@
 // // // //     return res.json();
 // // // //   }
 
-// // // //   // Actions
-// // // //   async function advanceStage(targetStatus: string, label: string) {
-// // // //     if (!confirm(`Confirm: ${label}?`)) return;
+// // // //   // --- ACTIONS ---
+
+// // // //   // Generic Advance Handler
+// // // //   async function saveStageUpdate(targetStatus: string) {
+// // // //     if (!confirm(`Confirm update to ${targetStatus}?`)) return;
 // // // //     setSubmitting(true);
+
 // // // //     try {
-// // // //       await postAction(`/complaints/${id}/advance`, { 
-// // // //         nextStatus: targetStatus, 
-// // // //         note: `Officer advanced stage to ${targetStatus}` 
+// // // //       // Build note string based on stage
+// // // //       let finalNote = note;
+// // // //       if (targetStatus === 'ASSIGNED' && officerName) {
+// // // //         finalNote = `[Assigned to: ${officerName}] ${note}`;
+// // // //       }
+
+// // // //       await postAction(`/complaints/${id}/advance`, {
+// // // //         nextStatus: targetStatus,
+// // // //         note: finalNote || `Updated status to ${targetStatus}`
 // // // //       });
-// // // //       window.location.reload(); 
+
+// // // //       alert("✅ Status Updated");
+// // // //       window.location.reload();
 // // // //     } catch (e: any) {
 // // // //       alert("Error: " + e.message);
 // // // //     } finally {
@@ -632,8 +1003,9 @@
 // // // //     }
 // // // //   }
 
+// // // //   // Final Resolve Handler (with Photo)
 // // // //   async function resolveJob() {
-// // // //     if (!file) return alert("📸 Proof photo is required!");
+// // // //     if (!file) return alert("📸 Proof photo is required to resolve!");
 // // // //     setSubmitting(true);
 // // // //     try {
 // // // //       const pos: any = await new Promise((resolve, reject) => {
@@ -662,8 +1034,9 @@
 // // // //   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500">Loading Protocol...</div>;
 // // // //   if (!c) return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500">Ticket not found.</div>;
 
-// // // //   // Calculate Progress Index
+// // // //   // Calculate Progress
 // // // //   const currentStageIndex = STAGES.findIndex(s => s.id === c.currentStatus);
+// // // //   const activeTabIndex = STAGES.findIndex(s => s.id === activeTab);
 // // // //   const progressPercent = (currentStageIndex / (STAGES.length - 1)) * 100;
 
 // // // //   return (
@@ -673,7 +1046,7 @@
 // // // //       <nav className="sticky top-0 z-20 bg-black/80 backdrop-blur-md border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
 // // // //         <Link href="/officer" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
 // // // //           <ArrowLeft size={18} />
-// // // //           <span className="font-medium text-sm">Back to Queue</span>
+// // // //           <span className="font-medium text-sm">Back</span>
 // // // //         </Link>
 // // // //         <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
 // // // //           {c.id.slice(0, 8)}
@@ -682,7 +1055,6 @@
 
 // // // //       <div className="max-w-xl mx-auto p-6 space-y-8">
 
-// // // //         {/* 1. Header Card */}
 // // // //         <header>
 // // // //           <div className="flex items-start justify-between mb-2">
 // // // //             <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-900/30 text-blue-400 border border-blue-800">
@@ -696,19 +1068,18 @@
 // // // //           <div className="flex items-center gap-2 text-sm text-zinc-400">
 // // // //             <MapPin size={14} className="text-zinc-600" />
 // // // //             <span>{c.ward?.name || "Unknown Ward"}</span>
-// // // //             <span className="text-zinc-600">•</span>
-// // // //             <span>{c.locationText || "GPS Pin"}</span>
 // // // //           </div>
 // // // //         </header>
 
-// // // //         {/* 2. PROGRESS STEPPER (The "Advanced" UI) */}
-// // // //         <div className="relative pt-2 pb-6">
-// // // //           {/* Background Line */}
-// // // //           <div className="absolute top-5 left-0 right-0 h-0.5 bg-zinc-800 rounded-full" />
+// // // //         {/* --- CLICKABLE PROGRESS STEPPER --- */}
+// // // //         <div className="relative pt-2 pb-6 px-2">
 
-// // // //           {/* Animated Progress Line */}
-// // // //           <div 
-// // // //             className="absolute top-5 left-0 h-0.5 bg-blue-500 rounded-full transition-all duration-700 ease-out"
+// // // //           {/* Grey Background Line */}
+// // // //           <div className="absolute top-5 left-2 right-2 h-1 bg-zinc-800 rounded-full" />
+
+// // // //           {/* Colored Progress Line (Gradient Blue -> Green) */}
+// // // //           <div
+// // // //             className="absolute top-5 left-2 h-1 rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-blue-600 to-green-500"
 // // // //             style={{ width: `${progressPercent}%` }}
 // // // //           />
 
@@ -716,157 +1087,191 @@
 // // // //           <div className="relative flex justify-between z-10">
 // // // //             {STAGES.map((stage, idx) => {
 // // // //               const isCompleted = idx <= currentStageIndex;
-// // // //               const isCurrent = idx === currentStageIndex;
+// // // //               const isActive = stage.id === activeTab; // Currently selected for editing
 
 // // // //               return (
-// // // //                 <div key={stage.id} className="flex flex-col items-center gap-2">
+// // // //                 <button
+// // // //                   key={stage.id}
+// // // //                   onClick={() => {
+// // // //                     setActiveTab(stage.id);
+// // // //                     setNote(""); // Clear form on tab switch
+// // // //                     setOfficerName("");
+// // // //                   }}
+// // // //                   className="flex flex-col items-center gap-2 group outline-none"
+// // // //                 >
 // // // //                   <div className={`
-// // // //                     w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-500
-// // // //                     ${isCompleted ? 'bg-zinc-900 border-blue-500 text-blue-400' : 'bg-black border-zinc-800 text-zinc-700'}
-// // // //                     ${isCurrent ? 'ring-4 ring-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : ''}
+// // // //                     w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300
+// // // //                     ${isActive
+// // // //                       ? 'scale-110 ring-4 ring-blue-500/30 border-blue-400 bg-zinc-900 text-white'
+// // // //                       : isCompleted
+// // // //                         ? 'bg-zinc-900 border-green-500 text-green-500'
+// // // //                         : 'bg-black border-zinc-800 text-zinc-700 group-hover:border-zinc-600'}
 // // // //                   `}>
-// // // //                     <stage.icon size={16} strokeWidth={isCurrent ? 2.5 : 2} />
+// // // //                     <stage.icon size={16} strokeWidth={isActive ? 2.5 : 2} />
 // // // //                   </div>
 // // // //                   <div className={`
-// // // //                     text-[10px] font-bold uppercase tracking-wider transition-colors duration-300
-// // // //                     ${isCompleted ? 'text-zinc-300' : 'text-zinc-700'}
+// // // //                     text-[10px] font-bold uppercase tracking-wider transition-colors
+// // // //                     ${isActive ? 'text-white' : 'text-zinc-600'}
 // // // //                   `}>
 // // // //                     {stage.label}
 // // // //                   </div>
-// // // //                 </div>
+// // // //                 </button>
 // // // //               );
 // // // //             })}
 // // // //           </div>
 // // // //         </div>
 
-// // // //         {/* 3. DYNAMIC ACTION AREA */}
-// // // //         <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-1 overflow-hidden">
+// // // //         {/* --- DYNAMIC FORM AREA --- */}
+// // // //         <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
 
-// // // //           {/* A. ASSIGNED -> START INSPECTION */}
-// // // //           {c.currentStatus === 'ASSIGNED' && (
-// // // //             <div className="p-8 text-center space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-// // // //               <div className="w-16 h-16 bg-blue-500/10 rounded-full flex items-center justify-center mx-auto text-blue-400 animate-pulse">
-// // // //                 <Search size={32} />
-// // // //               </div>
-// // // //               <div className="space-y-2">
-// // // //                 <h3 className="text-xl font-bold text-white">Arrived on Site?</h3>
-// // // //                 <p className="text-sm text-zinc-400 max-w-xs mx-auto">
-// // // //                   Confirm you have reached the location to begin the initial assessment.
-// // // //                 </p>
-// // // //               </div>
-// // // //               <button 
-// // // //                 onClick={() => advanceStage('INSPECTION', 'Start Inspection')}
-// // // //                 disabled={submitting}
-// // // //                 className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
-// // // //               >
-// // // //                 {submitting ? "Starting..." : "Begin Inspection"}
-// // // //               </button>
+// // // //           {/* HEADER FOR FORM */}
+// // // //           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-zinc-800">
+// // // //             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+// // // //               {/* ✅ FIX: Render as a Component, not a function call */}
+// // // //               {(() => {
+// // // //                 const StageIcon = STAGES.find(s => s.id === activeTab)?.icon || MapPin;
+// // // //                 return <StageIcon size={20} />;
+// // // //               })()}
 // // // //             </div>
-// // // //           )}
-
-// // // //           {/* B. INSPECTION -> START WORK */}
-// // // //           {c.currentStatus === 'INSPECTION' && (
-// // // //             <div className="p-8 text-center space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-// // // //               <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center mx-auto text-amber-400">
-// // // //                 <Hammer size={32} />
-// // // //               </div>
-// // // //               <div className="space-y-2">
-// // // //                 <h3 className="text-xl font-bold text-white">Inspection Complete</h3>
-// // // //                 <p className="text-sm text-zinc-400 max-w-xs mx-auto">
-// // // //                   Ready to start the actual repair work? This will update the public status to "Work in Progress".
-// // // //                 </p>
-// // // //               </div>
-// // // //               <button 
-// // // //                 onClick={() => advanceStage('WORK_IN_PROGRESS', 'Start Work')}
-// // // //                 disabled={submitting}
-// // // //                 className="w-full py-4 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition active:scale-[0.98] disabled:opacity-50"
-// // // //               >
-// // // //                 {submitting ? "Updating..." : "Start Repairs"}
-// // // //               </button>
+// // // //             <div>
+// // // //               <h3 className="font-bold text-lg text-white">
+// // // //                 Update Status: {STAGES.find(s => s.id === activeTab)?.label}
+// // // //               </h3>
+// // // //               <p className="text-xs text-zinc-500">Add details to update ticket status.</p>
 // // // //             </div>
-// // // //           )}
+// // // //           </div>
 
-// // // //           {/* C. WORK -> RESOLVE (FORM) */}
-// // // //           {(c.currentStatus === 'WORK_IN_PROGRESS' || c.currentStatus === 'REOPENED') && (
-// // // //             <div className="p-6 space-y-6 animate-in slide-in-from-bottom-4 duration-500">
-// // // //               <div className="flex items-center gap-3 pb-4 border-b border-zinc-800">
+// // // //           {/* 1. ASSIGNED FORM */}
+// // // //           {activeTab === 'ASSIGNED' && (
+// // // //             <div className="space-y-4">
+// // // //               <div>
+// // // //                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Assigned Officer</label>
 // // // //                 <div className="relative">
-// // // //                   <span className="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-20"></span>
-// // // //                   <div className="relative bg-green-500/10 p-2 rounded-full text-green-500">
-// // // //                     <Hammer size={18} />
-// // // //                   </div>
-// // // //                 </div>
-// // // //                 <div>
-// // // //                   <h3 className="font-bold text-white text-sm">Repair in Progress</h3>
-// // // //                   <p className="text-xs text-zinc-500">Complete the form below to close.</p>
-// // // //                 </div>
-// // // //               </div>
-
-// // // //               <div className="space-y-4">
-// // // //                 <div className="space-y-2">
-// // // //                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Resolution Notes</label>
-// // // //                   <textarea 
-// // // //                     value={note}
-// // // //                     onChange={e => setNote(e.target.value)}
-// // // //                     placeholder="Describe the fix (e.g., 'Filled 2x2m pothole, applied sealant')..."
-// // // //                     className="w-full h-32 bg-black border border-zinc-800 rounded-xl p-4 text-sm text-white placeholder:text-zinc-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+// // // //                   <User size={16} className="absolute left-3 top-3 text-zinc-500" />
+// // // //                   <input
+// // // //                     type="text"
+// // // //                     value={officerName}
+// // // //                     onChange={(e) => setOfficerName(e.target.value)}
+// // // //                     placeholder="Enter Officer Name..."
+// // // //                     className="w-full bg-black border border-zinc-700 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:border-blue-500 outline-none"
 // // // //                   />
 // // // //                 </div>
-
-// // // //                 <div className="space-y-2">
-// // // //                   <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider">Proof of Work</label>
-// // // //                   <div className="relative group">
-// // // //                     <input 
-// // // //                       type="file" 
-// // // //                       accept="image/*"
-// // // //                       onChange={e => setFile(e.target.files?.[0] || null)}
-// // // //                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-// // // //                     />
-// // // //                     <div className={`
-// // // //                       h-32 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 transition-all
-// // // //                       ${file ? 'border-green-500 bg-green-900/10' : 'border-zinc-800 bg-black hover:border-zinc-600'}
-// // // //                     `}>
-// // // //                       {file ? (
-// // // //                         <>
-// // // //                           <CheckCircle2 size={24} className="text-green-500" />
-// // // //                           <span className="text-sm font-medium text-green-400">{file.name}</span>
-// // // //                         </>
-// // // //                       ) : (
-// // // //                         <>
-// // // //                           <Camera size={24} className="text-zinc-600" />
-// // // //                           <span className="text-sm text-zinc-500">Tap to upload photo</span>
-// // // //                         </>
-// // // //                       )}
-// // // //                     </div>
-// // // //                   </div>
-// // // //                 </div>
 // // // //               </div>
-
-// // // //               <button 
-// // // //                 onClick={resolveJob}
+// // // //               <div>
+// // // //                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Assignment Notes</label>
+// // // //                 <textarea
+// // // //                   value={note}
+// // // //                   onChange={(e) => setNote(e.target.value)}
+// // // //                   placeholder="Additional instructions for the officer..."
+// // // //                   className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none resize-none"
+// // // //                 />
+// // // //               </div>
+// // // //               <button
+// // // //                 onClick={() => saveStageUpdate('ASSIGNED')}
 // // // //                 disabled={submitting}
-// // // //                 className="w-full py-4 bg-white hover:bg-zinc-200 text-black font-bold rounded-xl transition active:scale-[0.98] disabled:opacity-50 shadow-lg shadow-white/5"
+// // // //                 className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition disabled:opacity-50"
 // // // //               >
-// // // //                 {submitting ? "Uploading..." : "Complete & Close Job"}
+// // // //                 {submitting ? "Saving..." : "Confirm Assignment"}
 // // // //               </button>
 // // // //             </div>
 // // // //           )}
 
-// // // //           {/* D. RESOLVED STATE */}
-// // // //           {c.currentStatus === 'RESOLVED' && (
-// // // //             <div className="p-12 text-center space-y-4 animate-in zoom-in-95 duration-500">
-// // // //               <div className="w-20 h-20 bg-green-500/10 rounded-full flex items-center justify-center mx-auto text-green-500 mb-4">
-// // // //                 <Check size={40} strokeWidth={3} />
+// // // //           {/* 2. INSPECTION FORM */}
+// // // //           {activeTab === 'INSPECTION' && (
+// // // //             <div className="space-y-4">
+// // // //               <div className="bg-blue-900/20 text-blue-300 p-3 rounded-lg text-sm border border-blue-900/50">
+// // // //                 ⚠️ Ensure you are physically at the location before starting inspection.
 // // // //               </div>
-// // // //               <h3 className="text-2xl font-bold text-white">Job Closed!</h3>
-// // // //               <p className="text-zinc-500 max-w-xs mx-auto">
-// // // //                 Excellent work. This complaint has been marked as resolved and archived.
-// // // //               </p>
-// // // //               <Link href="/officer">
-// // // //                 <button className="mt-6 px-8 py-3 bg-zinc-800 hover:bg-zinc-700 text-white font-medium rounded-full transition">
-// // // //                   Return to Dashboard
-// // // //                 </button>
-// // // //               </Link>
+// // // //               <div>
+// // // //                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Inspection Notes</label>
+// // // //                 <textarea
+// // // //                   value={note}
+// // // //                   onChange={(e) => setNote(e.target.value)}
+// // // //                   placeholder="Observations from the site (e.g. 'Damage is severe, needs excavator')..."
+// // // //                   className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none resize-none"
+// // // //                 />
+// // // //               </div>
+// // // //               <button
+// // // //                 onClick={() => saveStageUpdate('INSPECTION')}
+// // // //                 disabled={submitting}
+// // // //                 className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition disabled:opacity-50"
+// // // //               >
+// // // //                 Start Inspection Phase
+// // // //               </button>
+// // // //             </div>
+// // // //           )}
+
+// // // //           {/* 3. WORK IN PROGRESS FORM */}
+// // // //           {activeTab === 'WORK_IN_PROGRESS' && (
+// // // //             <div className="space-y-4">
+// // // //               <div>
+// // // //                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Work Log</label>
+// // // //                 <textarea
+// // // //                   value={note}
+// // // //                   onChange={(e) => setNote(e.target.value)}
+// // // //                   placeholder="Log work start details (e.g. 'Crew arrived, material unloading')..."
+// // // //                   className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-amber-500 outline-none resize-none"
+// // // //                 />
+// // // //               </div>
+// // // //               <button
+// // // //                 onClick={() => saveStageUpdate('WORK_IN_PROGRESS')}
+// // // //                 disabled={submitting}
+// // // //                 className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition disabled:opacity-50"
+// // // //               >
+// // // //                 Mark Work in Progress
+// // // //               </button>
+// // // //             </div>
+// // // //           )}
+
+// // // //           {/* 4. RESOLVED FORM (Requires Photo) */}
+// // // //           {activeTab === 'RESOLVED' && (
+// // // //             <div className="space-y-5">
+
+// // // //               <div>
+// // // //                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Final Resolution Notes</label>
+// // // //                 <textarea
+// // // //                   value={note}
+// // // //                   onChange={(e) => setNote(e.target.value)}
+// // // //                   placeholder="Describe the fix in detail..."
+// // // //                   className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-green-500 outline-none resize-none"
+// // // //                 />
+// // // //               </div>
+
+// // // //               <div>
+// // // //                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Proof of Work (Required)</label>
+// // // //                 <div className="relative group">
+// // // //                   <input
+// // // //                     type="file"
+// // // //                     accept="image/*"
+// // // //                     onChange={e => setFile(e.target.files?.[0] || null)}
+// // // //                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+// // // //                   />
+// // // //                   <div className={`
+// // // //                     h-28 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 transition-all
+// // // //                     ${file ? 'border-green-500 bg-green-900/10' : 'border-zinc-700 bg-black hover:border-zinc-500'}
+// // // //                   `}>
+// // // //                     {file ? (
+// // // //                       <>
+// // // //                         <CheckCircle2 size={24} className="text-green-500" />
+// // // //                         <span className="text-sm font-medium text-green-400">{file.name}</span>
+// // // //                       </>
+// // // //                     ) : (
+// // // //                       <>
+// // // //                         <Camera size={24} className="text-zinc-600" />
+// // // //                         <span className="text-sm text-zinc-500">Tap to upload proof</span>
+// // // //                       </>
+// // // //                     )}
+// // // //                   </div>
+// // // //                 </div>
+// // // //               </div>
+
+// // // //               <button
+// // // //                 onClick={resolveJob}
+// // // //                 disabled={submitting}
+// // // //                 className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition disabled:opacity-50 shadow-lg shadow-green-900/20"
+// // // //               >
+// // // //                 {submitting ? "Closing Ticket..." : "Complete & Close Ticket"}
+// // // //               </button>
 // // // //             </div>
 // // // //           )}
 
@@ -877,25 +1282,366 @@
 // // // //   );
 // // // // }
 
+
+// // // // "use client";
+
+// // // // import { useEffect, useState } from "react";
+// // // // import { useParams, useRouter } from "next/navigation";
+// // // // import Link from "next/link";
+// // // // import { 
+// // // //   ArrowLeft, MapPin, Search, Hammer, CheckCircle2, Camera, Check, User
+// // // // } from "lucide-react";
+
+// // // // const API = process.env.NEXT_PUBLIC_API_BASE!;
+
+// // // // // Define strict sequence
+// // // // const STAGES = [
+// // // //   { id: 'ASSIGNED', label: 'Assigned', icon: MapPin },
+// // // //   { id: 'INSPECTION', label: 'Inspection', icon: Search },
+// // // //   { id: 'WORK_IN_PROGRESS', label: 'Work', icon: Hammer },
+// // // //   { id: 'RESOLVED', label: 'Resolved', icon: CheckCircle2 },
+// // // // ];
+
+// // // // export default function OfficerResolvePage() {
+// // // //   const { id } = useParams();
+// // // //   const router = useRouter();
+
+// // // //   const [c, setComplaint] = useState<any>(null);
+// // // //   const [loading, setLoading] = useState(true);
+// // // //   const [activeTab, setActiveTab] = useState<string>(""); 
+
+// // // //   // Form Data
+// // // //   const [officerName, setOfficerName] = useState("");
+// // // //   const [note, setNote] = useState("");
+// // // //   const [file, setFile] = useState<File | null>(null);
+// // // //   const [submitting, setSubmitting] = useState(false);
+
+// // // //   // // Load Data
+// // // //   // useEffect(() => {
+// // // //   //   const token = localStorage.getItem("civic_token");
+// // // //   //   if (!token) return router.push("/login");
+
+// // // //   //   fetch(`${API}/complaints/${id}`, {
+// // // //   //     headers: { Authorization: `Bearer ${token}` }
+// // // //   //   })
+// // // //   //   .then(res => {
+// // // //   //       if (!res.ok) throw new Error("Failed");
+// // // //   //       return res.json();
+// // // //   //   })
+// // // //   //   .then(data => {
+// // // //   //     setComplaint(data);
+// // // //   //     // Default to current status, or 'ASSIGNED' if it's earlier (CREATED/ACKNOWLEDGED)
+// // // //   //     const current = ['CREATED', 'ACKNOWLEDGED'].includes(data.currentStatus) ? 'ASSIGNED' : data.currentStatus;
+// // // //   //     setActiveTab(current); 
+// // // //   //     setLoading(false);
+// // // //   //   })
+// // // //   //   .catch(() => router.push("/officer"));
+// // // //   // }, [id, router]);
+// // // //   // Load Data
+// // // //   useEffect(() => {
+// // // //     const token = localStorage.getItem("civic_token");
+// // // //     if (!token) return router.push("/login");
+
+// // // //     fetch(`${API}/complaints/${id}`, {
+// // // //       headers: { Authorization: `Bearer ${token}` }
+// // // //     })
+// // // //     .then(res => {
+// // // //         if (!res.ok) throw new Error("Failed");
+// // // //         return res.json();
+// // // //     })
+// // // //     .then(data => {
+// // // //       setComplaint(data);
+
+// // // //       // ⚡️ SMART TAB SWITCHER ⚡️
+// // // //       // Automatically jumps to the NEXT actionable step
+// // // //       if (['CREATED', 'ACKNOWLEDGED'].includes(data.currentStatus)) {
+// // // //          setActiveTab('ASSIGNED');
+// // // //       } else if (data.currentStatus === 'ASSIGNED') {
+// // // //          setActiveTab('INSPECTION'); // Jump to next
+// // // //       } else if (data.currentStatus === 'INSPECTION') {
+// // // //          setActiveTab('WORK_IN_PROGRESS'); // Jump to next
+// // // //       } else if (data.currentStatus === 'WORK_IN_PROGRESS') {
+// // // //          setActiveTab('RESOLVED'); // Jump to next
+// // // //       } else {
+// // // //          setActiveTab('RESOLVED');
+// // // //       }
+
+// // // //       setLoading(false);
+// // // //     })
+// // // //     .catch(() => router.push("/officer"));
+// // // //   }, [id, router]);
+
+// // // //   // Helpers
+// // // //   function fileToBase64(file: File): Promise<string> {
+// // // //     return new Promise((resolve, reject) => {
+// // // //       const reader = new FileReader();
+// // // //       reader.onload = () => resolve(String(reader.result));
+// // // //       reader.onerror = reject;
+// // // //       reader.readAsDataURL(file);
+// // // //     });
+// // // //   }
+
+// // // //   async function postAction(url: string, method = "POST", body: any) {
+// // // //     const token = localStorage.getItem("civic_token");
+// // // //     const res = await fetch(`${API}${url}`, {
+// // // //       method,
+// // // //       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+// // // //       body: JSON.stringify(body),
+// // // //     });
+// // // //     if (!res.ok) {
+// // // //       const err = await res.json();
+// // // //       throw new Error(err.message || "Request failed");
+// // // //     }
+// // // //     return res.json();
+// // // //   }
+
+// // // //   // --- ACTIONS ---
+
+// // // //   // 1. SPECIFIC ASSIGNMENT HANDLER (Hits PATCH /assign)
+// // // //   async function saveAssignment() {
+// // // //     if (!confirm("Confirm assignment?")) return;
+// // // //     setSubmitting(true);
+// // // //     try {
+// // // //        // This endpoint handles the Auto-ACK + Assign logic on backend
+// // // //        await postAction(`/complaints/${id}/assign`, "PATCH", { officerName });
+// // // //        alert("✅ Assigned Successfully");
+// // // //        window.location.reload();
+// // // //     } catch (e: any) {
+// // // //       alert("Error: " + e.message);
+// // // //     } finally {
+// // // //       setSubmitting(false);
+// // // //     }
+// // // //   }
+
+// // // //   // 2. GENERIC ADVANCE HANDLER (For Inspection -> Work)
+// // // //   async function saveStageUpdate(targetStatus: string) {
+// // // //     if (!confirm(`Advance to ${targetStatus}?`)) return;
+// // // //     setSubmitting(true);
+// // // //     try {
+// // // //       await postAction(`/complaints/${id}/advance`, "POST", { 
+// // // //         nextStatus: targetStatus, 
+// // // //         note 
+// // // //       });
+// // // //       alert("✅ Status Updated");
+// // // //       window.location.reload(); 
+// // // //     } catch (e: any) {
+// // // //       alert("Error: " + e.message);
+// // // //     } finally {
+// // // //       setSubmitting(false);
+// // // //     }
+// // // //   }
+
+// // // //   // 3. RESOLVE HANDLER
+// // // //   async function resolveJob() {
+// // // //     if (!file) return alert("📸 Photo required!");
+// // // //     setSubmitting(true);
+// // // //     try {
+// // // //       const fullBase64 = await fileToBase64(file);
+// // // //       const mediaBase64 = fullBase64.split(",")[1];
+
+// // // //       // Get Location if possible, else default to complaint location
+// // // //       let lat = c.lat, lng = c.lng;
+// // // //       try {
+// // // //         const pos: any = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, {timeout: 5000}));
+// // // //         lat = pos.coords.latitude;
+// // // //         lng = pos.coords.longitude;
+// // // //       } catch (e) { console.warn("GPS failed, using default"); }
+
+// // // //       await postAction(`/complaints/${id}/resolve`, "POST", {
+// // // //         lat, lng, mediaBase64, note
+// // // //       });
+
+// // // //       alert("🎉 Job Closed!");
+// // // //       router.push("/officer");
+// // // //     } catch (e: any) {
+// // // //       alert("Error: " + e.message);
+// // // //     } finally {
+// // // //       setSubmitting(false);
+// // // //     }
+// // // //   }
+
+// // // //   if (loading || !c) return <div className="min-h-screen bg-black text-white p-10">Loading...</div>;
+
+// // // //   const currentStageIndex = STAGES.findIndex(s => s.id === c.currentStatus);
+// // // //   const activeTabIndex = STAGES.findIndex(s => s.id === activeTab);
+// // // //   const progressPercent = (Math.max(0, currentStageIndex) / (STAGES.length - 1)) * 100;
+
+// // // //   // Determine if the Active Tab is "Past" (Completed)
+// // // //   const isTabCompleted = activeTabIndex < currentStageIndex;
+// // // //   // Determine if Active Tab is "Future" (Locked)
+// // // //   const isTabLocked = activeTabIndex > currentStageIndex + 1;
+
+// // // //   return (
+// // // //     <main className="min-h-screen bg-black text-zinc-200 font-sans pb-20">
+// // // //       <nav className="sticky top-0 z-20 bg-black/80 backdrop-blur-md border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+// // // //         <Link href="/officer" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
+// // // //           <ArrowLeft size={18} /> <span className="font-medium text-sm">Back</span>
+// // // //         </Link>
+// // // //         <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{c.id.slice(0, 8)}</div>
+// // // //       </nav>
+
+// // // //       <div className="max-w-xl mx-auto p-6 space-y-8">
+// // // //         <header>
+// // // //           <h1 className="text-2xl font-bold text-white mb-2">{c.title}</h1>
+// // // //           <div className="flex items-center gap-2 text-sm text-zinc-400">
+// // // //             <span className="px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 text-xs font-bold border border-blue-800">{c.category}</span>
+// // // //             <span>• {c.ward?.name}</span>
+// // // //           </div>
+// // // //         </header>
+
+// // // //         {/* PROGRESS STEPPER */}
+// // // //         <div className="relative pt-2 pb-6 px-2">
+// // // //           <div className="absolute top-5 left-2 right-2 h-1 bg-zinc-800 rounded-full" />
+// // // //           <div className="absolute top-5 left-2 h-1 rounded-full transition-all duration-700 bg-gradient-to-r from-blue-600 to-green-500" style={{ width: `${progressPercent}%` }} />
+// // // //           <div className="relative flex justify-between z-10">
+// // // //             {/* {STAGES.map((stage, idx) => {
+// // // //               const isCompleted = idx <= currentStageIndex;
+// // // //               const isActive = stage.id === activeTab;
+// // // //               return (
+// // // //                 <button key={stage.id} onClick={() => { setActiveTab(stage.id); setNote(""); }} className="flex flex-col items-center gap-2 group outline-none">
+// // // //                   <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isActive ? 'scale-110 border-blue-400 bg-zinc-900 text-white' : isCompleted ? 'bg-zinc-900 border-green-500 text-green-500' : 'bg-black border-zinc-800 text-zinc-700'}`}>
+// // // //                     <stage.icon size={16} strokeWidth={isActive ? 2.5 : 2} />
+// // // //                   </div>
+// // // //                   <div className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? 'text-white' : 'text-zinc-600'}`}>{stage.label}</div>
+// // // //                 </button>
+// // // //               );
+// // // //             })} */}
+// // // //             // ... inside the STAGES.map loop ...
+// // // //           {STAGES.map((stage, idx) => {
+// // // //             const isCompleted = idx <= currentStageIndex;
+// // // //             const isActive = stage.id === activeTab;
+
+// // // //             // 🔒 LOCK LOGIC: You can only click:
+// // // //             // 1. Past stages (to view history)
+// // // //             // 2. Current stage
+// // // //             // 3. The IMMEDIATE next stage (to advance)
+// // // //             // Anything further is LOCKED.
+// // // //             const isLocked = idx > currentStageIndex + 1;
+
+// // // //             return (
+// // // //               <button 
+// // // //                 key={stage.id} 
+// // // //                 disabled={isLocked} // 👈 THIS PREVENTS CLICKING
+// // // //                 onClick={() => {
+// // // //                   if (!isLocked) {
+// // // //                     setActiveTab(stage.id);
+// // // //                     setNote("");
+// // // //                   }
+// // // //                 }}
+// // // //                 className={`
+// // // //                   flex flex-col items-center gap-2 group outline-none transition-all
+// // // //                   ${isLocked ? 'opacity-40 cursor-not-allowed grayscale' : 'cursor-pointer'}
+// // // //                 `}
+// // // //               >
+// // // //                 <div className={`
+// // // //                   w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all
+// // // //                   ${isActive 
+// // // //                       ? 'scale-110 border-blue-400 bg-zinc-900 text-white' 
+// // // //                       : isCompleted 
+// // // //                           ? 'bg-zinc-900 border-green-500 text-green-500' 
+// // // //                           : 'bg-black border-zinc-800 text-zinc-700'}
+// // // //                 `}>
+// // // //                   <stage.icon size={16} strokeWidth={isActive ? 2.5 : 2} />
+// // // //                 </div>
+// // // //                 <div className={`
+// // // //                   text-[10px] font-bold uppercase tracking-wider 
+// // // //                   ${isActive ? 'text-white' : 'text-zinc-600'}
+// // // //                 `}>
+// // // //                   {stage.label}
+// // // //                 </div>
+// // // //               </button>
+// // // //             );
+// // // //           })}
+// // // //           </div>
+// // // //         </div>
+
+// // // //         {/* DYNAMIC FORM */}
+// // // //         <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
+// // // //           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-zinc-800">
+// // // //              <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+// // // //                {(() => { const I = STAGES.find(s=>s.id===activeTab)?.icon||MapPin; return <I size={20}/> })()}
+// // // //              </div>
+// // // //              <div>
+// // // //                <h3 className="font-bold text-lg text-white">Status: {STAGES.find(s=>s.id===activeTab)?.label}</h3>
+// // // //                {isTabCompleted && <span className="text-xs text-green-400 font-medium">✅ Completed</span>}
+// // // //                {isTabLocked && <span className="text-xs text-zinc-600 font-medium">🔒 Locked (Complete previous steps first)</span>}
+// // // //              </div>
+// // // //           </div>
+
+// // // //           {/* READ-ONLY VIEW FOR PAST STAGES */}
+// // // //           {isTabCompleted && activeTab !== 'RESOLVED' && (
+// // // //             <div className="text-zinc-500 text-sm text-center py-4">
+// // // //               This stage is complete. <br/>Move to the next stage to update progress.
+// // // //             </div>
+// // // //           )}
+
+// // // //           {/* 1. ASSIGNED FORM */}
+// // // //           {!isTabCompleted && activeTab === 'ASSIGNED' && (
+// // // //             <div className="space-y-4">
+// // // //               <input type="text" value={officerName} onChange={(e) => setOfficerName(e.target.value)} placeholder="Officer Name..." className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none" />
+// // // //               <button onClick={saveAssignment} disabled={submitting} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition">
+// // // //                 {submitting ? "Saving..." : "Confirm Assignment"}
+// // // //               </button>
+// // // //             </div>
+// // // //           )}
+
+// // // //           {/* 2. INSPECTION FORM */}
+// // // //           {!isTabCompleted && activeTab === 'INSPECTION' && (
+// // // //             <div className="space-y-4">
+// // // //                <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Site observations..." className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" />
+// // // //                <button onClick={() => saveStageUpdate('INSPECTION')} disabled={submitting} className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition">Start Inspection</button>
+// // // //             </div>
+// // // //           )}
+
+// // // //           {/* 3. WORK FORM */}
+// // // //           {!isTabCompleted && activeTab === 'WORK_IN_PROGRESS' && (
+// // // //             <div className="space-y-4">
+// // // //                <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Work details..." className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" />
+// // // //                <button onClick={() => saveStageUpdate('WORK_IN_PROGRESS')} disabled={submitting} className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition">Start Work</button>
+// // // //             </div>
+// // // //           )}
+
+// // // //           {/* 4. RESOLVED FORM */}
+// // // //           {(!isTabCompleted || activeTab === 'RESOLVED') && activeTab === 'RESOLVED' && c.currentStatus !== 'RESOLVED' && (
+// // // //             <div className="space-y-5">
+// // // //               <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Final resolution notes..." className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" />
+// // // //               <div className="relative group h-28 border-2 border-dashed border-zinc-700 rounded-xl flex items-center justify-center">
+// // // //                   <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer" />
+// // // //                   {file ? <span className="text-green-400 flex items-center gap-2"><CheckCircle2/> {file.name}</span> : <span className="text-zinc-500 flex items-center gap-2"><Camera/> Upload Proof</span>}
+// // // //               </div>
+// // // //               <button onClick={resolveJob} disabled={submitting} className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition">
+// // // //                 {submitting ? "Closing..." : "Close Ticket"}
+// // // //               </button>
+// // // //             </div>
+// // // //           )}
+
+// // // //           {/* COMPLETED MSG */}
+// // // //           {c.currentStatus === 'RESOLVED' && activeTab === 'RESOLVED' && (
+// // // //              <div className="text-center p-6 bg-green-900/20 rounded-xl border border-green-900 text-green-400 font-medium">
+// // // //                ✅ This ticket is closed.
+// // // //              </div>
+// // // //           )}
+
+// // // //         </div>
+// // // //       </div>
+// // // //     </main>
+// // // //   );
+// // // // }
+
+
 // // // "use client";
 
 // // // import { useEffect, useState } from "react";
 // // // import { useParams, useRouter } from "next/navigation";
 // // // import Link from "next/link";
 // // // import {
-// // //   ArrowLeft,
-// // //   MapPin,
-// // //   Search,
-// // //   Hammer,
-// // //   CheckCircle2,
-// // //   Camera,
-// // //   Check,
-// // //   User
+// // //   ArrowLeft, MapPin, Search, Hammer, CheckCircle2,
+// // //   Camera, Check, User, Clock, FileText,
+// // //   X, Plus
 // // // } from "lucide-react";
 
 // // // const API = process.env.NEXT_PUBLIC_API_BASE!;
 
-// // // // Define stages with IDs matching your DB status enums
 // // // const STAGES = [
 // // //   { id: 'ASSIGNED', label: 'Assigned', icon: MapPin },
 // // //   { id: 'INSPECTION', label: 'Inspection', icon: Search },
@@ -909,414 +1655,14 @@
 
 // // //   const [c, setComplaint] = useState<any>(null);
 // // //   const [loading, setLoading] = useState(true);
-
-// // //   // Interaction State
-// // //   // We use this to decide which "Stage Form" to show. 
-// // //   // Default is the current status from DB.
 // // //   const [activeTab, setActiveTab] = useState<string>("");
 
 // // //   // Form Data
 // // //   const [officerName, setOfficerName] = useState("");
 // // //   const [note, setNote] = useState("");
-// // //   const [file, setFile] = useState<File | null>(null);
+// // //   const [files, setFiles] = useState<File[]>([]); // ✅ Changed to array
 // // //   const [submitting, setSubmitting] = useState(false);
 
-// // //   // Load Data
-// // //   useEffect(() => {
-// // //     const token = localStorage.getItem("civic_token");
-// // //     if (!token) {
-// // //       router.push("/login");
-// // //       return;
-// // //     }
-
-// // //     fetch(`${API}/complaints/${id}`, {
-// // //       headers: { Authorization: `Bearer ${token}` }
-// // //     })
-// // //       .then(res => {
-// // //         if (!res.ok) throw new Error("Failed to load");
-// // //         return res.json();
-// // //       })
-// // //       .then(data => {
-// // //         setComplaint(data);
-// // //         // Set the active tab to the current status initially
-// // //         setActiveTab(data.currentStatus);
-// // //         setLoading(false);
-// // //       })
-// // //       .catch(err => {
-// // //         alert("Failed to load ticket details.");
-// // //         router.push("/officer");
-// // //       });
-// // //   }, [id, router]);
-
-// // //   // Helpers
-// // //   function fileToBase64(file: File): Promise<string> {
-// // //     return new Promise((resolve, reject) => {
-// // //       const reader = new FileReader();
-// // //       reader.onload = () => resolve(String(reader.result));
-// // //       reader.onerror = reject;
-// // //       reader.readAsDataURL(file);
-// // //     });
-// // //   }
-
-// // //   async function postAction(url: string, body: any) {
-// // //     const token = localStorage.getItem("civic_token");
-// // //     const res = await fetch(`${API}${url}`, {
-// // //       method: "POST",
-// // //       headers: {
-// // //         "Content-Type": "application/json",
-// // //         "Authorization": `Bearer ${token}`
-// // //       },
-// // //       body: JSON.stringify(body),
-// // //     });
-// // //     if (!res.ok) {
-// // //       const err = await res.json();
-// // //       throw new Error(err.message || "Request failed");
-// // //     }
-// // //     return res.json();
-// // //   }
-
-// // //   // --- ACTIONS ---
-
-// // //   // Generic Advance Handler
-// // //   async function saveStageUpdate(targetStatus: string) {
-// // //     if (!confirm(`Confirm update to ${targetStatus}?`)) return;
-// // //     setSubmitting(true);
-
-// // //     try {
-// // //       // Build note string based on stage
-// // //       let finalNote = note;
-// // //       if (targetStatus === 'ASSIGNED' && officerName) {
-// // //         finalNote = `[Assigned to: ${officerName}] ${note}`;
-// // //       }
-
-// // //       await postAction(`/complaints/${id}/advance`, {
-// // //         nextStatus: targetStatus,
-// // //         note: finalNote || `Updated status to ${targetStatus}`
-// // //       });
-
-// // //       alert("✅ Status Updated");
-// // //       window.location.reload();
-// // //     } catch (e: any) {
-// // //       alert("Error: " + e.message);
-// // //     } finally {
-// // //       setSubmitting(false);
-// // //     }
-// // //   }
-
-// // //   // Final Resolve Handler (with Photo)
-// // //   async function resolveJob() {
-// // //     if (!file) return alert("📸 Proof photo is required to resolve!");
-// // //     setSubmitting(true);
-// // //     try {
-// // //       const pos: any = await new Promise((resolve, reject) => {
-// // //         navigator.geolocation.getCurrentPosition(resolve, reject);
-// // //       });
-
-// // //       const fullBase64 = await fileToBase64(file);
-// // //       const mediaBase64 = fullBase64.split(",")[1];
-
-// // //       await postAction(`/complaints/${id}/resolve`, {
-// // //         lat: pos.coords.latitude,
-// // //         lng: pos.coords.longitude,
-// // //         mediaBase64,
-// // //         note: note || "Resolved via Officer Console",
-// // //       });
-
-// // //       alert("🎉 Job Closed Successfully!");
-// // //       router.push("/officer");
-// // //     } catch (e: any) {
-// // //       alert("Error: " + e.message);
-// // //     } finally {
-// // //       setSubmitting(false);
-// // //     }
-// // //   }
-
-// // //   if (loading) return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500">Loading Protocol...</div>;
-// // //   if (!c) return <div className="min-h-screen bg-black flex items-center justify-center text-zinc-500">Ticket not found.</div>;
-
-// // //   // Calculate Progress
-// // //   const currentStageIndex = STAGES.findIndex(s => s.id === c.currentStatus);
-// // //   const activeTabIndex = STAGES.findIndex(s => s.id === activeTab);
-// // //   const progressPercent = (currentStageIndex / (STAGES.length - 1)) * 100;
-
-// // //   return (
-// // //     <main className="min-h-screen bg-black text-zinc-200 font-sans pb-20">
-
-// // //       {/* Navbar */}
-// // //       <nav className="sticky top-0 z-20 bg-black/80 backdrop-blur-md border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
-// // //         <Link href="/officer" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
-// // //           <ArrowLeft size={18} />
-// // //           <span className="font-medium text-sm">Back</span>
-// // //         </Link>
-// // //         <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
-// // //           {c.id.slice(0, 8)}
-// // //         </div>
-// // //       </nav>
-
-// // //       <div className="max-w-xl mx-auto p-6 space-y-8">
-
-// // //         <header>
-// // //           <div className="flex items-start justify-between mb-2">
-// // //             <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-blue-900/30 text-blue-400 border border-blue-800">
-// // //               {c.category}
-// // //             </span>
-// // //             <span className="text-xs text-zinc-500 font-mono">
-// // //               {new Date(c.createdAt).toLocaleDateString()}
-// // //             </span>
-// // //           </div>
-// // //           <h1 className="text-2xl font-bold text-white leading-tight mb-2">{c.title}</h1>
-// // //           <div className="flex items-center gap-2 text-sm text-zinc-400">
-// // //             <MapPin size={14} className="text-zinc-600" />
-// // //             <span>{c.ward?.name || "Unknown Ward"}</span>
-// // //           </div>
-// // //         </header>
-
-// // //         {/* --- CLICKABLE PROGRESS STEPPER --- */}
-// // //         <div className="relative pt-2 pb-6 px-2">
-
-// // //           {/* Grey Background Line */}
-// // //           <div className="absolute top-5 left-2 right-2 h-1 bg-zinc-800 rounded-full" />
-
-// // //           {/* Colored Progress Line (Gradient Blue -> Green) */}
-// // //           <div
-// // //             className="absolute top-5 left-2 h-1 rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-blue-600 to-green-500"
-// // //             style={{ width: `${progressPercent}%` }}
-// // //           />
-
-// // //           {/* Steps */}
-// // //           <div className="relative flex justify-between z-10">
-// // //             {STAGES.map((stage, idx) => {
-// // //               const isCompleted = idx <= currentStageIndex;
-// // //               const isActive = stage.id === activeTab; // Currently selected for editing
-
-// // //               return (
-// // //                 <button
-// // //                   key={stage.id}
-// // //                   onClick={() => {
-// // //                     setActiveTab(stage.id);
-// // //                     setNote(""); // Clear form on tab switch
-// // //                     setOfficerName("");
-// // //                   }}
-// // //                   className="flex flex-col items-center gap-2 group outline-none"
-// // //                 >
-// // //                   <div className={`
-// // //                     w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-300
-// // //                     ${isActive
-// // //                       ? 'scale-110 ring-4 ring-blue-500/30 border-blue-400 bg-zinc-900 text-white'
-// // //                       : isCompleted
-// // //                         ? 'bg-zinc-900 border-green-500 text-green-500'
-// // //                         : 'bg-black border-zinc-800 text-zinc-700 group-hover:border-zinc-600'}
-// // //                   `}>
-// // //                     <stage.icon size={16} strokeWidth={isActive ? 2.5 : 2} />
-// // //                   </div>
-// // //                   <div className={`
-// // //                     text-[10px] font-bold uppercase tracking-wider transition-colors
-// // //                     ${isActive ? 'text-white' : 'text-zinc-600'}
-// // //                   `}>
-// // //                     {stage.label}
-// // //                   </div>
-// // //                 </button>
-// // //               );
-// // //             })}
-// // //           </div>
-// // //         </div>
-
-// // //         {/* --- DYNAMIC FORM AREA --- */}
-// // //         <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 overflow-hidden animate-in fade-in slide-in-from-bottom-2 duration-300">
-
-// // //           {/* HEADER FOR FORM */}
-// // //           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-zinc-800">
-// // //             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-// // //               {/* ✅ FIX: Render as a Component, not a function call */}
-// // //               {(() => {
-// // //                 const StageIcon = STAGES.find(s => s.id === activeTab)?.icon || MapPin;
-// // //                 return <StageIcon size={20} />;
-// // //               })()}
-// // //             </div>
-// // //             <div>
-// // //               <h3 className="font-bold text-lg text-white">
-// // //                 Update Status: {STAGES.find(s => s.id === activeTab)?.label}
-// // //               </h3>
-// // //               <p className="text-xs text-zinc-500">Add details to update ticket status.</p>
-// // //             </div>
-// // //           </div>
-
-// // //           {/* 1. ASSIGNED FORM */}
-// // //           {activeTab === 'ASSIGNED' && (
-// // //             <div className="space-y-4">
-// // //               <div>
-// // //                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Assigned Officer</label>
-// // //                 <div className="relative">
-// // //                   <User size={16} className="absolute left-3 top-3 text-zinc-500" />
-// // //                   <input
-// // //                     type="text"
-// // //                     value={officerName}
-// // //                     onChange={(e) => setOfficerName(e.target.value)}
-// // //                     placeholder="Enter Officer Name..."
-// // //                     className="w-full bg-black border border-zinc-700 rounded-xl py-2.5 pl-10 pr-4 text-sm text-white focus:border-blue-500 outline-none"
-// // //                   />
-// // //                 </div>
-// // //               </div>
-// // //               <div>
-// // //                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Assignment Notes</label>
-// // //                 <textarea
-// // //                   value={note}
-// // //                   onChange={(e) => setNote(e.target.value)}
-// // //                   placeholder="Additional instructions for the officer..."
-// // //                   className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none resize-none"
-// // //                 />
-// // //               </div>
-// // //               <button
-// // //                 onClick={() => saveStageUpdate('ASSIGNED')}
-// // //                 disabled={submitting}
-// // //                 className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition disabled:opacity-50"
-// // //               >
-// // //                 {submitting ? "Saving..." : "Confirm Assignment"}
-// // //               </button>
-// // //             </div>
-// // //           )}
-
-// // //           {/* 2. INSPECTION FORM */}
-// // //           {activeTab === 'INSPECTION' && (
-// // //             <div className="space-y-4">
-// // //               <div className="bg-blue-900/20 text-blue-300 p-3 rounded-lg text-sm border border-blue-900/50">
-// // //                 ⚠️ Ensure you are physically at the location before starting inspection.
-// // //               </div>
-// // //               <div>
-// // //                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Inspection Notes</label>
-// // //                 <textarea
-// // //                   value={note}
-// // //                   onChange={(e) => setNote(e.target.value)}
-// // //                   placeholder="Observations from the site (e.g. 'Damage is severe, needs excavator')..."
-// // //                   className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-blue-500 outline-none resize-none"
-// // //                 />
-// // //               </div>
-// // //               <button
-// // //                 onClick={() => saveStageUpdate('INSPECTION')}
-// // //                 disabled={submitting}
-// // //                 className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition disabled:opacity-50"
-// // //               >
-// // //                 Start Inspection Phase
-// // //               </button>
-// // //             </div>
-// // //           )}
-
-// // //           {/* 3. WORK IN PROGRESS FORM */}
-// // //           {activeTab === 'WORK_IN_PROGRESS' && (
-// // //             <div className="space-y-4">
-// // //               <div>
-// // //                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Work Log</label>
-// // //                 <textarea
-// // //                   value={note}
-// // //                   onChange={(e) => setNote(e.target.value)}
-// // //                   placeholder="Log work start details (e.g. 'Crew arrived, material unloading')..."
-// // //                   className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-amber-500 outline-none resize-none"
-// // //                 />
-// // //               </div>
-// // //               <button
-// // //                 onClick={() => saveStageUpdate('WORK_IN_PROGRESS')}
-// // //                 disabled={submitting}
-// // //                 className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition disabled:opacity-50"
-// // //               >
-// // //                 Mark Work in Progress
-// // //               </button>
-// // //             </div>
-// // //           )}
-
-// // //           {/* 4. RESOLVED FORM (Requires Photo) */}
-// // //           {activeTab === 'RESOLVED' && (
-// // //             <div className="space-y-5">
-
-// // //               <div>
-// // //                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Final Resolution Notes</label>
-// // //                 <textarea
-// // //                   value={note}
-// // //                   onChange={(e) => setNote(e.target.value)}
-// // //                   placeholder="Describe the fix in detail..."
-// // //                   className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-green-500 outline-none resize-none"
-// // //                 />
-// // //               </div>
-
-// // //               <div>
-// // //                 <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Proof of Work (Required)</label>
-// // //                 <div className="relative group">
-// // //                   <input
-// // //                     type="file"
-// // //                     accept="image/*"
-// // //                     onChange={e => setFile(e.target.files?.[0] || null)}
-// // //                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-// // //                   />
-// // //                   <div className={`
-// // //                     h-28 border-2 border-dashed rounded-xl flex flex-col items-center justify-center gap-2 transition-all
-// // //                     ${file ? 'border-green-500 bg-green-900/10' : 'border-zinc-700 bg-black hover:border-zinc-500'}
-// // //                   `}>
-// // //                     {file ? (
-// // //                       <>
-// // //                         <CheckCircle2 size={24} className="text-green-500" />
-// // //                         <span className="text-sm font-medium text-green-400">{file.name}</span>
-// // //                       </>
-// // //                     ) : (
-// // //                       <>
-// // //                         <Camera size={24} className="text-zinc-600" />
-// // //                         <span className="text-sm text-zinc-500">Tap to upload proof</span>
-// // //                       </>
-// // //                     )}
-// // //                   </div>
-// // //                 </div>
-// // //               </div>
-
-// // //               <button
-// // //                 onClick={resolveJob}
-// // //                 disabled={submitting}
-// // //                 className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition disabled:opacity-50 shadow-lg shadow-green-900/20"
-// // //               >
-// // //                 {submitting ? "Closing Ticket..." : "Complete & Close Ticket"}
-// // //               </button>
-// // //             </div>
-// // //           )}
-
-// // //         </div>
-
-// // //       </div>
-// // //     </main>
-// // //   );
-// // // }
-
-
-// // // "use client";
-
-// // // import { useEffect, useState } from "react";
-// // // import { useParams, useRouter } from "next/navigation";
-// // // import Link from "next/link";
-// // // import { 
-// // //   ArrowLeft, MapPin, Search, Hammer, CheckCircle2, Camera, Check, User
-// // // } from "lucide-react";
-
-// // // const API = process.env.NEXT_PUBLIC_API_BASE!;
-
-// // // // Define strict sequence
-// // // const STAGES = [
-// // //   { id: 'ASSIGNED', label: 'Assigned', icon: MapPin },
-// // //   { id: 'INSPECTION', label: 'Inspection', icon: Search },
-// // //   { id: 'WORK_IN_PROGRESS', label: 'Work', icon: Hammer },
-// // //   { id: 'RESOLVED', label: 'Resolved', icon: CheckCircle2 },
-// // // ];
-
-// // // export default function OfficerResolvePage() {
-// // //   const { id } = useParams();
-// // //   const router = useRouter();
-
-// // //   const [c, setComplaint] = useState<any>(null);
-// // //   const [loading, setLoading] = useState(true);
-// // //   const [activeTab, setActiveTab] = useState<string>(""); 
-
-// // //   // Form Data
-// // //   const [officerName, setOfficerName] = useState("");
-// // //   const [note, setNote] = useState("");
-// // //   const [file, setFile] = useState<File | null>(null);
-// // //   const [submitting, setSubmitting] = useState(false);
-
-// // //   // // Load Data
 // // //   // useEffect(() => {
 // // //   //   const token = localStorage.getItem("civic_token");
 // // //   //   if (!token) return router.push("/login");
@@ -1330,14 +1676,29 @@
 // // //   //   })
 // // //   //   .then(data => {
 // // //   //     setComplaint(data);
-// // //   //     // Default to current status, or 'ASSIGNED' if it's earlier (CREATED/ACKNOWLEDGED)
-// // //   //     const current = ['CREATED', 'ACKNOWLEDGED'].includes(data.currentStatus) ? 'ASSIGNED' : data.currentStatus;
-// // //   //     setActiveTab(current); 
+// // //   //     // Smart Switcher
+// // //   //     if (['CREATED', 'ACKNOWLEDGED'].includes(data.currentStatus)) setActiveTab('ASSIGNED');
+// // //   //     else if (data.currentStatus === 'ASSIGNED') setActiveTab('INSPECTION');
+// // //   //     else if (data.currentStatus === 'INSPECTION') setActiveTab('WORK_IN_PROGRESS');
+// // //   //     else if (data.currentStatus === 'WORK_IN_PROGRESS') setActiveTab('RESOLVED');
+// // //   //     else setActiveTab('RESOLVED');
+
 // // //   //     setLoading(false);
 // // //   //   })
 // // //   //   .catch(() => router.push("/officer"));
 // // //   // }, [id, router]);
-// // //   // Load Data
+
+// // //   // ⚡️ HELPER: Determines the "Active" tab based on current status
+// // //   function getTabForStatus(status: string) {
+// // //     if (['CREATED', 'ACKNOWLEDGED'].includes(status)) return 'ASSIGNED';
+// // //     if (status === 'ASSIGNED') return 'INSPECTION';
+// // //     if (status === 'INSPECTION') return 'WORK_IN_PROGRESS';
+// // //     // If working, go to Resolved tab to finish it
+// // //     if (status === 'WORK_IN_PROGRESS') return 'RESOLVED';
+// // //     // If resolved, stay on Resolved
+// // //     return 'RESOLVED';
+// // //   }
+
 // // //   useEffect(() => {
 // // //     const token = localStorage.getItem("civic_token");
 // // //     if (!token) return router.push("/login");
@@ -1345,30 +1706,17 @@
 // // //     fetch(`${API}/complaints/${id}`, {
 // // //       headers: { Authorization: `Bearer ${token}` }
 // // //     })
-// // //     .then(res => {
+// // //       .then(res => {
 // // //         if (!res.ok) throw new Error("Failed");
 // // //         return res.json();
-// // //     })
-// // //     .then(data => {
-// // //       setComplaint(data);
-
-// // //       // ⚡️ SMART TAB SWITCHER ⚡️
-// // //       // Automatically jumps to the NEXT actionable step
-// // //       if (['CREATED', 'ACKNOWLEDGED'].includes(data.currentStatus)) {
-// // //          setActiveTab('ASSIGNED');
-// // //       } else if (data.currentStatus === 'ASSIGNED') {
-// // //          setActiveTab('INSPECTION'); // Jump to next
-// // //       } else if (data.currentStatus === 'INSPECTION') {
-// // //          setActiveTab('WORK_IN_PROGRESS'); // Jump to next
-// // //       } else if (data.currentStatus === 'WORK_IN_PROGRESS') {
-// // //          setActiveTab('RESOLVED'); // Jump to next
-// // //       } else {
-// // //          setActiveTab('RESOLVED');
-// // //       }
-
-// // //       setLoading(false);
-// // //     })
-// // //     .catch(() => router.push("/officer"));
+// // //       })
+// // //       .then(data => {
+// // //         setComplaint(data);
+// // //         // ✅ FIX: Use the helper to jump to the correct tab
+// // //         setActiveTab(getTabForStatus(data.currentStatus));
+// // //         setLoading(false);
+// // //       })
+// // //       .catch(() => router.push("/officer"));
 // // //   }, [id, router]);
 
 // // //   // Helpers
@@ -1381,12 +1729,33 @@
 // // //     });
 // // //   }
 
+// // //   // async function postAction(url: string, method = "POST", body: any) {
+// // //   //   const token = localStorage.getItem("civic_token");
+// // //   //   const res = await fetch(`${API}${url}`, {
+// // //   //     method,
+// // //   //     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+// // //   //     body: JSON.stringify(body),
+// // //   //   });
+// // //   //   if (!res.ok) {
+// // //   //     const err = await res.json();
+// // //   //     throw new Error(err.message || "Request failed");
+// // //   //   }
+// // //   //   return res.json();
+// // //   // }
+
 // // //   async function postAction(url: string, method = "POST", body: any) {
 // // //     const token = localStorage.getItem("civic_token");
+
+// // //     // ✅ FIX: Auto-detect FormData to avoid setting Content-Type manually
+// // //     const headers: any = { "Authorization": `Bearer ${token}` };
+// // //     if (!(body instanceof FormData)) {
+// // //       headers["Content-Type"] = "application/json";
+// // //     }
+
 // // //     const res = await fetch(`${API}${url}`, {
 // // //       method,
-// // //       headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-// // //       body: JSON.stringify(body),
+// // //       headers,
+// // //       body: body instanceof FormData ? body : JSON.stringify(body),
 // // //     });
 // // //     if (!res.ok) {
 // // //       const err = await res.json();
@@ -1394,18 +1763,33 @@
 // // //     }
 // // //     return res.json();
 // // //   }
+// // //   // ... rest of function stays the same
 
 // // //   // --- ACTIONS ---
+// // //   // async function saveAssignment() {
+// // //   //   if (!confirm("Confirm assignment?")) return;
+// // //   //   setSubmitting(true);
+// // //   //   try {
+// // //   //     await postAction(`/complaints/${id}/assign`, "PATCH", { officerName });
+// // //   //     alert("✅ Assigned Successfully");
+// // //   //     window.location.reload();
+// // //   //   } catch (e: any) {
+// // //   //     alert("Error: " + e.message);
+// // //   //   } finally {
+// // //   //     setSubmitting(false);
+// // //   //   }
+// // //   // }
 
-// // //   // 1. SPECIFIC ASSIGNMENT HANDLER (Hits PATCH /assign)
 // // //   async function saveAssignment() {
+// // //     // ✅ FIX: Validation
+// // //     if (!officerName.trim()) return alert("Please enter Officer Name");
+
 // // //     if (!confirm("Confirm assignment?")) return;
 // // //     setSubmitting(true);
 // // //     try {
-// // //        // This endpoint handles the Auto-ACK + Assign logic on backend
-// // //        await postAction(`/complaints/${id}/assign`, "PATCH", { officerName });
-// // //        alert("✅ Assigned Successfully");
-// // //        window.location.reload();
+// // //       await postAction(`/complaints/${id}/assign`, "PATCH", { officerName });
+// // //       alert("✅ Assigned Successfully");
+// // //       window.location.reload();
 // // //     } catch (e: any) {
 // // //       alert("Error: " + e.message);
 // // //     } finally {
@@ -1413,17 +1797,13 @@
 // // //     }
 // // //   }
 
-// // //   // 2. GENERIC ADVANCE HANDLER (For Inspection -> Work)
 // // //   async function saveStageUpdate(targetStatus: string) {
 // // //     if (!confirm(`Advance to ${targetStatus}?`)) return;
 // // //     setSubmitting(true);
 // // //     try {
-// // //       await postAction(`/complaints/${id}/advance`, "POST", { 
-// // //         nextStatus: targetStatus, 
-// // //         note 
-// // //       });
+// // //       await postAction(`/complaints/${id}/advance`, "POST", { nextStatus: targetStatus, note });
 // // //       alert("✅ Status Updated");
-// // //       window.location.reload(); 
+// // //       window.location.reload();
 // // //     } catch (e: any) {
 // // //       alert("Error: " + e.message);
 // // //     } finally {
@@ -1431,26 +1811,99 @@
 // // //     }
 // // //   }
 
-// // //   // 3. RESOLVE HANDLER
-// // //   async function resolveJob() {
-// // //     if (!file) return alert("📸 Photo required!");
-// // //     setSubmitting(true);
-// // //     try {
-// // //       const fullBase64 = await fileToBase64(file);
-// // //       const mediaBase64 = fullBase64.split(",")[1];
+// // //   // async function resolveJob() {
+// // //   //   if (!file) return alert("📸 Photo required!");
+// // //   //   setSubmitting(true);
+// // //   //   try {
+// // //   //     const fullBase64 = await fileToBase64(file);
+// // //   //     const mediaBase64 = fullBase64.split(",")[1];
 
-// // //       // Get Location if possible, else default to complaint location
-// // //       let lat = c.lat, lng = c.lng;
+// // //   //     let lat = c.lat, lng = c.lng;
+// // //   //     try {
+// // //   //       const pos: any = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
+// // //   //       lat = pos.coords.latitude;
+// // //   //       lng = pos.coords.longitude;
+// // //   //     } catch (e) { console.warn("GPS failed, using default"); }
+
+// // //   //     await postAction(`/complaints/${id}/resolve`, "POST", { lat, lng, mediaBase64, note });
+// // //   //     alert("🎉 Job Closed!");
+// // //   //     router.push("/officer");
+// // //   //   } catch (e: any) {
+// // //   //     alert("Error: " + e.message);
+// // //   //   } finally {
+// // //   //     setSubmitting(false);
+// // //   //   }
+// // //   // }
+
+// // //   // async function resolveJob() {
+// // //   //   if (files.length === 0) return alert("📸 At least one photo required!");
+// // //   //   setSubmitting(true);
+// // //   //   try {
+// // //   //     let lat = c.lat, lng = c.lng;
+// // //   //     try {
+// // //   //       const pos: any = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
+// // //   //       lat = pos.coords.latitude;
+// // //   //       lng = pos.coords.longitude;
+// // //   //     } catch (e) { console.warn("GPS failed, using default"); }
+
+// // //   //     // ✅ FIX: Use FormData for files
+// // //   //     const formData = new FormData();
+// // //   //     formData.append("lat", String(lat));
+// // //   //     formData.append("lng", String(lng));
+// // //   //     formData.append("note", note);
+
+// // //   //     files.forEach((file) => {
+// // //   //       formData.append("images", file); // 'images' matches backend interceptor
+// // //   //     });
+
+// // //   //     await postAction(`/complaints/${id}/resolve`, "POST", formData);
+
+// // //   //     alert("🎉 Job Closed!");
+// // //   //     router.push("/officer");
+// // //   //   } catch (e: any) {
+// // //   //     alert("Error: " + e.message);
+// // //   //   } finally {
+// // //   //     setSubmitting(false);
+// // //   //   }
+// // //   // }
+
+// // //   async function resolveJob() {
+// // //     if (files.length === 0) return alert("📸 At least one photo required!");
+// // //     setSubmitting(true);
+    
+// // //     try {
+// // //       // 1. Initialize variables (Undefined initially to force GPS)
+// // //       let lat = null;
+// // //       let lng = null;
+
 // // //       try {
-// // //         const pos: any = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, {timeout: 5000}));
+// // //         const pos: any = await new Promise((resolve, reject) => {
+// // //           navigator.geolocation.getCurrentPosition(resolve, reject, {
+// // //             enableHighAccuracy: true, // Request best possible GPS
+// // //             timeout: 10000,           // Wait up to 10 seconds
+// // //             maximumAge: 0             // Do not use cached location
+// // //           });
+// // //         });
 // // //         lat = pos.coords.latitude;
 // // //         lng = pos.coords.longitude;
-// // //       } catch (e) { console.warn("GPS failed, using default"); }
+// // //       } catch (e) {
+// // //         // ❌ ERROR: GPS Failed - STOP the process
+// // //         setSubmitting(false);
+// // //         return alert("⚠️ Location Access Required!\n\nPlease enable GPS permissions to close this ticket.");
+// // //       }
 
-// // //       await postAction(`/complaints/${id}/resolve`, "POST", {
-// // //         lat, lng, mediaBase64, note
+// // //       // 2. Prepare Data
+// // //       const formData = new FormData();
+// // //       formData.append("lat", String(lat));
+// // //       formData.append("lng", String(lng));
+// // //       formData.append("note", note);
+      
+// // //       files.forEach((file) => {
+// // //         formData.append("images", file);
 // // //       });
 
+// // //       await postAction(`/complaints/${id}/resolve`, "POST", formData);
+      
 // // //       alert("🎉 Job Closed!");
 // // //       router.push("/officer");
 // // //     } catch (e: any) {
@@ -1460,16 +1913,56 @@
 // // //     }
 // // //   }
 
+// // //   // --- HISTORY FINDER ---
+// // //   // Looks through the event log to find what happened in previous stages
+// // //   function getStageHistory(stageId: string) {
+// // //     if (!c || !c.events) return null;
+
+// // //     // Map Tab ID to Event Type
+// // //     const typeMap: Record<string, string> = {
+// // //       'ASSIGNED': 'ASSIGNED',
+// // //       'INSPECTION': 'INSPECTION_STARTED',
+// // //       'WORK_IN_PROGRESS': 'WORK_STARTED',
+// // //       'RESOLVED': 'RESOLVED'
+// // //     };
+
+// // //     const targetType = typeMap[stageId];
+// // //     // Find the latest event of this type
+// // //     return c.events.filter((e: any) => e.type === targetType).pop();
+// // //   }
+
 // // //   if (loading || !c) return <div className="min-h-screen bg-black text-white p-10">Loading...</div>;
 
 // // //   const currentStageIndex = STAGES.findIndex(s => s.id === c.currentStatus);
 // // //   const activeTabIndex = STAGES.findIndex(s => s.id === activeTab);
 // // //   const progressPercent = (Math.max(0, currentStageIndex) / (STAGES.length - 1)) * 100;
 
-// // //   // Determine if the Active Tab is "Past" (Completed)
-// // //   const isTabCompleted = activeTabIndex < currentStageIndex;
-// // //   // Determine if Active Tab is "Future" (Locked)
+// // //   const isTabCompleted = activeTabIndex <= currentStageIndex;
 // // //   const isTabLocked = activeTabIndex > currentStageIndex + 1;
+// // //   const historyEvent = isTabCompleted ? getStageHistory(activeTab) : null;
+
+// // //   // ✅ 1. Handle File Appending (Add More)
+// // //   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+// // //     if (e.target.files && e.target.files.length > 0) {
+// // //       const newFiles = Array.from(e.target.files);
+// // //       setFiles(prev => {
+// // //         // Combine old + new, then slice to max 5
+// // //         const combined = [...prev, ...newFiles];
+// // //         if (combined.length > 5) {
+// // //           alert("Maximum 5 photos allowed. First 5 kept.");
+// // //           return combined.slice(0, 5);
+// // //         }
+// // //         return combined;
+// // //       });
+// // //       // Reset input value so the same file can be selected again if needed
+// // //       e.target.value = "";
+// // //     }
+// // //   };
+
+// // //   // ✅ 2. Remove File
+// // //   const removeFile = (index: number) => {
+// // //     setFiles(prev => prev.filter((_, i) => i !== index));
+// // //   };
 
 // // //   return (
 // // //     <main className="min-h-screen bg-black text-zinc-200 font-sans pb-20">
@@ -1489,137 +1982,289 @@
 // // //           </div>
 // // //         </header>
 
-// // //         {/* PROGRESS STEPPER */}
+// // //         {/* STEPPER */}
 // // //         <div className="relative pt-2 pb-6 px-2">
 // // //           <div className="absolute top-5 left-2 right-2 h-1 bg-zinc-800 rounded-full" />
 // // //           <div className="absolute top-5 left-2 h-1 rounded-full transition-all duration-700 bg-gradient-to-r from-blue-600 to-green-500" style={{ width: `${progressPercent}%` }} />
 // // //           <div className="relative flex justify-between z-10">
-// // //             {/* {STAGES.map((stage, idx) => {
+// // //             {STAGES.map((stage, idx) => {
 // // //               const isCompleted = idx <= currentStageIndex;
 // // //               const isActive = stage.id === activeTab;
+// // //               const isLocked = idx > currentStageIndex + 1;
+
 // // //               return (
-// // //                 <button key={stage.id} onClick={() => { setActiveTab(stage.id); setNote(""); }} className="flex flex-col items-center gap-2 group outline-none">
+// // //                 <button
+// // //                   key={stage.id}
+// // //                   disabled={isLocked}
+// // //                   onClick={() => { if (!isLocked) { setActiveTab(stage.id); setNote(""); } }}
+// // //                   className={`flex flex-col items-center gap-2 group outline-none transition-all ${isLocked ? 'opacity-40 cursor-not-allowed grayscale' : 'cursor-pointer'}`}
+// // //                 >
 // // //                   <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isActive ? 'scale-110 border-blue-400 bg-zinc-900 text-white' : isCompleted ? 'bg-zinc-900 border-green-500 text-green-500' : 'bg-black border-zinc-800 text-zinc-700'}`}>
 // // //                     <stage.icon size={16} strokeWidth={isActive ? 2.5 : 2} />
 // // //                   </div>
 // // //                   <div className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? 'text-white' : 'text-zinc-600'}`}>{stage.label}</div>
 // // //                 </button>
 // // //               );
-// // //             })} */}
-// // //             // ... inside the STAGES.map loop ...
-// // //           {STAGES.map((stage, idx) => {
-// // //             const isCompleted = idx <= currentStageIndex;
-// // //             const isActive = stage.id === activeTab;
-
-// // //             // 🔒 LOCK LOGIC: You can only click:
-// // //             // 1. Past stages (to view history)
-// // //             // 2. Current stage
-// // //             // 3. The IMMEDIATE next stage (to advance)
-// // //             // Anything further is LOCKED.
-// // //             const isLocked = idx > currentStageIndex + 1;
-
-// // //             return (
-// // //               <button 
-// // //                 key={stage.id} 
-// // //                 disabled={isLocked} // 👈 THIS PREVENTS CLICKING
-// // //                 onClick={() => {
-// // //                   if (!isLocked) {
-// // //                     setActiveTab(stage.id);
-// // //                     setNote("");
-// // //                   }
-// // //                 }}
-// // //                 className={`
-// // //                   flex flex-col items-center gap-2 group outline-none transition-all
-// // //                   ${isLocked ? 'opacity-40 cursor-not-allowed grayscale' : 'cursor-pointer'}
-// // //                 `}
-// // //               >
-// // //                 <div className={`
-// // //                   w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all
-// // //                   ${isActive 
-// // //                       ? 'scale-110 border-blue-400 bg-zinc-900 text-white' 
-// // //                       : isCompleted 
-// // //                           ? 'bg-zinc-900 border-green-500 text-green-500' 
-// // //                           : 'bg-black border-zinc-800 text-zinc-700'}
-// // //                 `}>
-// // //                   <stage.icon size={16} strokeWidth={isActive ? 2.5 : 2} />
-// // //                 </div>
-// // //                 <div className={`
-// // //                   text-[10px] font-bold uppercase tracking-wider 
-// // //                   ${isActive ? 'text-white' : 'text-zinc-600'}
-// // //                 `}>
-// // //                   {stage.label}
-// // //                 </div>
-// // //               </button>
-// // //             );
-// // //           })}
+// // //             })}
 // // //           </div>
 // // //         </div>
 
-// // //         {/* DYNAMIC FORM */}
+// // //         {/* CONTENT AREA */}
 // // //         <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
 // // //           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-zinc-800">
-// // //              <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-// // //                {(() => { const I = STAGES.find(s=>s.id===activeTab)?.icon||MapPin; return <I size={20}/> })()}
-// // //              </div>
-// // //              <div>
-// // //                <h3 className="font-bold text-lg text-white">Status: {STAGES.find(s=>s.id===activeTab)?.label}</h3>
-// // //                {isTabCompleted && <span className="text-xs text-green-400 font-medium">✅ Completed</span>}
-// // //                {isTabLocked && <span className="text-xs text-zinc-600 font-medium">🔒 Locked (Complete previous steps first)</span>}
-// // //              </div>
+// // //             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
+// // //               {(() => { const I = STAGES.find(s => s.id === activeTab)?.icon || MapPin; return <I size={20} /> })()}
+// // //             </div>
+// // //             <div>
+// // //               <h3 className="font-bold text-lg text-white">{STAGES.find(s => s.id === activeTab)?.label} Phase</h3>
+// // //               {isTabCompleted && <span className="text-xs text-green-400 font-medium flex items-center gap-1"><Check size={12} /> Completed</span>}
+// // //               {isTabLocked && <span className="text-xs text-zinc-600 font-medium">🔒 Locked</span>}
+// // //             </div>
 // // //           </div>
 
-// // //           {/* READ-ONLY VIEW FOR PAST STAGES */}
-// // //           {isTabCompleted && activeTab !== 'RESOLVED' && (
-// // //             <div className="text-zinc-500 text-sm text-center py-4">
-// // //               This stage is complete. <br/>Move to the next stage to update progress.
-// // //             </div>
-// // //           )}
+// // //           {/* yaha se neech tak 1 section hai */}
 
-// // //           {/* 1. ASSIGNED FORM */}
-// // //           {!isTabCompleted && activeTab === 'ASSIGNED' && (
-// // //             <div className="space-y-4">
-// // //               <input type="text" value={officerName} onChange={(e) => setOfficerName(e.target.value)} placeholder="Officer Name..." className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none" />
-// // //               <button onClick={saveAssignment} disabled={submitting} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition">
-// // //                 {submitting ? "Saving..." : "Confirm Assignment"}
-// // //               </button>
-// // //             </div>
-// // //           )}
+// // //           {/* --- READ ONLY HISTORY VIEW --- */}
+// // //           {/* {isTabCompleted && historyEvent && (
+// // //             <div className="space-y-4 animate-in fade-in duration-300">
+// // //               <div className="bg-black/40 border border-zinc-800 rounded-xl p-4 space-y-3"> */}
+// // //           {/* Timestamp */}
+// // //           {/* <div className="flex items-center gap-2 text-xs text-zinc-500 mb-2">
+// // //                   <Clock size={12} />
+// // //                   Completed on {new Date(historyEvent.createdAt).toLocaleString()}
+// // //                 </div> */}
 
-// // //           {/* 2. INSPECTION FORM */}
-// // //           {!isTabCompleted && activeTab === 'INSPECTION' && (
-// // //             <div className="space-y-4">
-// // //                <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Site observations..." className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" />
-// // //                <button onClick={() => saveStageUpdate('INSPECTION')} disabled={submitting} className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition">Start Inspection</button>
-// // //             </div>
-// // //           )}
+// // //           {/* Notes content */}
+// // //           {/* <div className="flex gap-3">
+// // //                   <div className="mt-0.5"><FileText size={16} className="text-zinc-400" /></div>
+// // //                   <div className="text-sm text-zinc-200">
+// // //                     {historyEvent.data?.note || historyEvent.data?.reason || "No notes provided."}
+// // //                   </div>
+// // //                 </div> */}
 
-// // //           {/* 3. WORK FORM */}
-// // //           {!isTabCompleted && activeTab === 'WORK_IN_PROGRESS' && (
-// // //             <div className="space-y-4">
-// // //                <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Work details..." className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" />
-// // //                <button onClick={() => saveStageUpdate('WORK_IN_PROGRESS')} disabled={submitting} className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition">Start Work</button>
-// // //             </div>
-// // //           )}
-
-// // //           {/* 4. RESOLVED FORM */}
-// // //           {(!isTabCompleted || activeTab === 'RESOLVED') && activeTab === 'RESOLVED' && c.currentStatus !== 'RESOLVED' && (
-// // //             <div className="space-y-5">
-// // //               <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Final resolution notes..." className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" />
-// // //               <div className="relative group h-28 border-2 border-dashed border-zinc-700 rounded-xl flex items-center justify-center">
-// // //                   <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer" />
-// // //                   {file ? <span className="text-green-400 flex items-center gap-2"><CheckCircle2/> {file.name}</span> : <span className="text-zinc-500 flex items-center gap-2"><Camera/> Upload Proof</span>}
+// // //           {/* Proof Image (Only for Resolved) */}
+// // //           {/* {historyEvent.data?.proofUrl && (
+// // //                   <div className="mt-4">
+// // //                     <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Proof of Work</p>
+// // //                     <img src={`${API}${historyEvent.data.proofUrl}`} alt="Proof" className="rounded-lg border border-zinc-700 w-full h-48 object-cover" />
+// // //                   </div>
+// // //                 )}
 // // //               </div>
-// // //               <button onClick={resolveJob} disabled={submitting} className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition">
-// // //                 {submitting ? "Closing..." : "Close Ticket"}
-// // //               </button>
+
+// // //               {activeTab !== 'RESOLVED' && (
+// // //                 <div className="text-center">
+// // //                   <button onClick={() => {
+// // //                     // Logic to jump to current active tab
+// // //                     const current = STAGES.find(s => s.id === c.currentStatus);
+// // //                     if (current) setActiveTab(current.id);
+// // //                   }} className="text-xs text-blue-400 hover:text-blue-300 underline">
+// // //                     Return to Active Task &rarr;
+// // //                   </button>
+// // //                 </div>
+// // //               )}
 // // //             </div>
+// // //           )} */}
+
+// // //           {/* yaha tak secion ka end hai */}
+
+// // //           {/* --- READ ONLY HISTORY VIEW --- */}
+// // //           {/* ✅ FIX: Show this block if tab is completed, even if historyEvent is missing */}
+// // //           {isTabCompleted && (
+// // //             <div className="space-y-4 animate-in fade-in duration-300">
+// // //               <div className="bg-black/40 border border-zinc-800 rounded-xl p-4 space-y-3">
+// // //                 {historyEvent ? (
+// // //                   <>
+// // //                     <div className="flex items-center gap-2 text-xs text-zinc-500 mb-2">
+// // //                       <Clock size={12} />
+// // //                       Completed on {new Date(historyEvent.createdAt).toLocaleString()}
+// // //                     </div>
+
+// // //                     <div className="flex gap-3">
+// // //                       <div className="mt-0.5"><FileText size={16} className="text-zinc-400" /></div>
+// // //                       <div className="text-sm text-zinc-200">
+// // //                         {historyEvent.data?.note || historyEvent.data?.reason || "No notes provided."}
+// // //                       </div>
+// // //                     </div>
+
+// // //                     {/* {historyEvent.data?.proofUrl && (
+// // //                       <div className="mt-4">
+// // //                         <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Proof of Work</p>
+// // //                         <img src={`${API}${historyEvent.data.proofUrl}`} alt="Proof" className="rounded-lg border border-zinc-700 w-full h-48 object-cover" />
+// // //                       </div>
+// // //                     )} */}
+// // //                     {/* ✅ UPDATED: Support Multiple Proof Images */}
+// // //                     {(historyEvent.data?.proofUrls?.length > 0 || historyEvent.data?.proofUrl) && (
+// // //                       <div className="mt-4">
+// // //                         <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Proof of Work</p>
+// // //                         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+// // //                            {/* Handle both new Array format and old Single format */}
+// // //                            {(historyEvent.data.proofUrls || [historyEvent.data.proofUrl]).map((url: string, idx: number) => (
+// // //                               <img 
+// // //                                 key={idx} 
+// // //                                 src={`${API}${url}`} 
+// // //                                 alt={`Proof ${idx + 1}`} 
+// // //                                 className="rounded-lg border border-zinc-700 w-32 h-24 object-cover shrink-0" 
+// // //                               />
+// // //                            ))}
+// // //                         </div>
+// // //                       </div>
+// // //                     )}
+// // //                   </>
+// // //                 ) : (
+// // //                   /* ✅ FIX: Fallback if history is missing but stage is done */
+// // //                   <div className="text-center py-4">
+// // //                     <p className="text-zinc-500 text-sm">Step completed (Details unavailable)</p>
+// // //                   </div>
+// // //                 )}
+// // //               </div>
+
+// // //               {/* ✅ FIX: Button is now visible regardless of historyEvent */}
+// // //               {activeTab !== getTabForStatus(c.currentStatus) && (
+// // //                 <div className="text-center">
+// // //                   <button onClick={() => {
+// // //                     // ✅ FIX: Use the helper to jump to the correct active tab
+// // //                     setActiveTab(getTabForStatus(c.currentStatus));
+// // //                   }} className="text-xs text-blue-400 hover:text-blue-300 underline cursor-pointer">
+// // //                     Return to Active Task &rarr;
+// // //                   </button>
+// // //                 </div>
+// // //               )}
+// // //             </div>
+// // //           )}
+
+// // //           {/* --- ACTIVE FORMS (Only show if NOT completed) --- */}
+// // //           {!isTabCompleted && !isTabLocked && (
+// // //             <>
+// // //               {/* 1. ASSIGNED FORM */}
+// // //               {activeTab === 'ASSIGNED' && (
+// // //                 <div className="space-y-4">
+// // //                   <input type="text" value={officerName} onChange={(e) => setOfficerName(e.target.value)} placeholder="Officer Name..." className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none" />
+// // //                   <button onClick={saveAssignment} disabled={submitting} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition">
+// // //                     {submitting ? "Saving..." : "Confirm Assignment"}
+// // //                   </button>
+// // //                 </div>
+// // //               )}
+
+// // //               {/* 2. INSPECTION FORM */}
+// // //               {activeTab === 'INSPECTION' && (
+// // //                 <div className="space-y-4">
+// // //                   <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Site observations..." className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" />
+// // //                   <button onClick={() => saveStageUpdate('INSPECTION')} disabled={submitting} className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition">Start Inspection</button>
+// // //                 </div>
+// // //               )}
+
+// // //               {/* 3. WORK FORM */}
+// // //               {activeTab === 'WORK_IN_PROGRESS' && (
+// // //                 <div className="space-y-4">
+// // //                   <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Work details..." className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" />
+// // //                   <button onClick={() => saveStageUpdate('WORK_IN_PROGRESS')} disabled={submitting} className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition">Start Work</button>
+// // //                 </div>
+// // //               )}
+
+// // //               {/* 4. RESOLVED FORM */}
+// // //               {/* {activeTab === 'RESOLVED' && (
+// // //                 <div className="space-y-5">
+// // //                   <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Final resolution notes..." className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" /> */}
+// // //               {/* <div className="relative group h-28 border-2 border-dashed border-zinc-700 rounded-xl flex items-center justify-center">
+// // //                     <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer" />
+// // //                     {file ? <span className="text-green-400 flex items-center gap-2"><CheckCircle2 /> {file.name}</span> : <span className="text-zinc-500 flex items-center gap-2"><Camera /> Upload Proof</span>}
+// // //                   </div> */}
+// // //               {/* <div className="relative group h-32 border-2 border-dashed border-zinc-700 rounded-xl flex flex-col items-center justify-center bg-black/30 hover:bg-black/50 transition">
+// // //                     <input
+// // //                       type="file"
+// // //                       multiple // ✅ Allow Multiple
+// // //                       accept="image/*"
+// // //                       onChange={(e) => e.target.files && setFiles(Array.from(e.target.files).slice(0, 5))}
+// // //                       className="absolute inset-0 opacity-0 cursor-pointer z-10"
+// // //                     />
+// // //                     <Camera className="text-zinc-500 mb-2" />
+// // //                     {files.length > 0 ? (
+// // //                       <span className="text-green-400 font-medium text-sm">{files.length} images selected</span>
+// // //                     ) : (
+// // //                       <span className="text-zinc-500 text-sm">Click to upload proofs (Max 5)</span>
+// // //                     )}
+// // //                   </div> */}
+
+// // //               {/* ✅ Add Preview Row */}
+// // //               {/* {files.length > 0 && (
+// // //                     <div className="flex gap-2 overflow-x-auto pb-2">
+// // //                       {files.map((f, i) => (
+// // //                         <div key={i} className="relative w-16 h-16 shrink-0 border border-zinc-700 rounded-lg overflow-hidden">
+// // //                           <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" alt="preview" />
+// // //                         </div>
+// // //                       ))}
+// // //                     </div>
+// // //                   )}
+// // //                   <button onClick={resolveJob} disabled={submitting} className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition">
+// // //                     {submitting ? "Closing..." : "Close Ticket"}
+// // //                   </button>
+// // //                 </div>
+// // //               )} */}
+
+// // //               {activeTab === 'RESOLVED' && (
+// // //                 <div className="space-y-5">
+// // //                   <textarea
+// // //                     value={note}
+// // //                     onChange={(e) => setNote(e.target.value)}
+// // //                     placeholder="Final resolution notes..."
+// // //                     className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none"
+// // //                   />
+
+// // //                   {/* ✅ UPDATED FILE SECTION */}
+// // //                   <div className="space-y-2">
+// // //                     <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+
+// // //                       {/* 1. Preview Existing Files */}
+// // //                       {files.map((f, i) => (
+// // //                         <div key={i} className="relative w-24 h-24 shrink-0 border border-zinc-700 rounded-xl overflow-hidden group">
+// // //                           <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" alt="preview" />
+// // //                           <button
+// // //                             onClick={() => removeFile(i)}
+// // //                             className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-red-600 transition"
+// // //                           >
+// // //                             <X size={12} />
+// // //                           </button>
+// // //                         </div>
+// // //                       ))}
+
+// // //                       {/* 2. Add Button (Only visible if count < 5) */}
+// // //                       {files.length < 5 && (
+// // //                         <div className="relative w-24 h-24 shrink-0 border-2 border-dashed border-zinc-700 rounded-xl flex flex-col items-center justify-center bg-black/30 hover:bg-zinc-900/50 transition cursor-pointer">
+// // //                           <input
+// // //                             type="file"
+// // //                             multiple
+// // //                             accept="image/*"
+// // //                             onChange={handleFileChange}
+// // //                             className="absolute inset-0 opacity-0 cursor-pointer z-10"
+// // //                           />
+// // //                           <Plus size={24} className="text-zinc-500 mb-1" />
+// // //                           <span className="text-[10px] text-zinc-500 font-medium">
+// // //                             {files.length === 0 ? "Upload" : "Add More"}
+// // //                           </span>
+// // //                         </div>
+// // //                       )}
+// // //                     </div>
+
+// // //                     {/* Counter */}
+// // //                     <div className="text-right text-xs text-zinc-500">
+// // //                       {files.length}/5 Photos Selected
+// // //                     </div>
+// // //                   </div>
+
+// // //                   <button onClick={resolveJob} disabled={submitting} className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition">
+// // //                     {submitting ? "Closing..." : "Close Ticket"}
+// // //                   </button>
+// // //                 </div>
+// // //               )}
+
+// // //             </>
 // // //           )}
 
 // // //           {/* COMPLETED MSG */}
-// // //           {c.currentStatus === 'RESOLVED' && activeTab === 'RESOLVED' && (
-// // //              <div className="text-center p-6 bg-green-900/20 rounded-xl border border-green-900 text-green-400 font-medium">
-// // //                ✅ This ticket is closed.
-// // //              </div>
+// // //           {c.currentStatus === 'RESOLVED' && activeTab === 'RESOLVED' && !historyEvent && (
+// // //             <div className="text-center p-6 bg-green-900/20 rounded-xl border border-green-900 text-green-400 font-medium">
+// // //               ✅ This ticket is closed.
+// // //             </div>
 // // //           )}
 
 // // //         </div>
@@ -1628,16 +2273,14 @@
 // // //   );
 // // // }
 
-
 // // "use client";
 
 // // import { useEffect, useState } from "react";
 // // import { useParams, useRouter } from "next/navigation";
 // // import Link from "next/link";
-// // import {
-// //   ArrowLeft, MapPin, Search, Hammer, CheckCircle2,
-// //   Camera, Check, User, Clock, FileText,
-// //   X, Plus
+// // import { 
+// //   ArrowLeft, MapPin, Search, Hammer, CheckCircle2, 
+// //   Camera, Check, Clock, FileText, X, Plus, LocateFixed 
 // // } from "lucide-react";
 
 // // const API = process.env.NEXT_PUBLIC_API_BASE!;
@@ -1652,258 +2295,98 @@
 // // export default function OfficerResolvePage() {
 // //   const { id } = useParams();
 // //   const router = useRouter();
-
+  
 // //   const [c, setComplaint] = useState<any>(null);
 // //   const [loading, setLoading] = useState(true);
-// //   const [activeTab, setActiveTab] = useState<string>("");
+// //   const [activeTab, setActiveTab] = useState<string>(""); 
 
 // //   // Form Data
 // //   const [officerName, setOfficerName] = useState("");
 // //   const [note, setNote] = useState("");
-// //   const [files, setFiles] = useState<File[]>([]); // ✅ Changed to array
+// //   const [files, setFiles] = useState<File[]>([]); 
 // //   const [submitting, setSubmitting] = useState(false);
 
-// //   // useEffect(() => {
-// //   //   const token = localStorage.getItem("civic_token");
-// //   //   if (!token) return router.push("/login");
+// //   // ✅ NEW: Location State
+// //   const [gps, setGps] = useState<{lat: number, lng: number} | null>(null);
+// //   const [locStatus, setLocStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
-// //   //   fetch(`${API}/complaints/${id}`, {
-// //   //     headers: { Authorization: `Bearer ${token}` }
-// //   //   })
-// //   //   .then(res => {
-// //   //       if (!res.ok) throw new Error("Failed");
-// //   //       return res.json();
-// //   //   })
-// //   //   .then(data => {
-// //   //     setComplaint(data);
-// //   //     // Smart Switcher
-// //   //     if (['CREATED', 'ACKNOWLEDGED'].includes(data.currentStatus)) setActiveTab('ASSIGNED');
-// //   //     else if (data.currentStatus === 'ASSIGNED') setActiveTab('INSPECTION');
-// //   //     else if (data.currentStatus === 'INSPECTION') setActiveTab('WORK_IN_PROGRESS');
-// //   //     else if (data.currentStatus === 'WORK_IN_PROGRESS') setActiveTab('RESOLVED');
-// //   //     else setActiveTab('RESOLVED');
-
-// //   //     setLoading(false);
-// //   //   })
-// //   //   .catch(() => router.push("/officer"));
-// //   // }, [id, router]);
-
-// //   // ⚡️ HELPER: Determines the "Active" tab based on current status
 // //   function getTabForStatus(status: string) {
 // //     if (['CREATED', 'ACKNOWLEDGED'].includes(status)) return 'ASSIGNED';
 // //     if (status === 'ASSIGNED') return 'INSPECTION';
 // //     if (status === 'INSPECTION') return 'WORK_IN_PROGRESS';
-// //     // If working, go to Resolved tab to finish it
 // //     if (status === 'WORK_IN_PROGRESS') return 'RESOLVED';
-// //     // If resolved, stay on Resolved
 // //     return 'RESOLVED';
 // //   }
 
 // //   useEffect(() => {
 // //     const token = localStorage.getItem("civic_token");
 // //     if (!token) return router.push("/login");
-
+    
 // //     fetch(`${API}/complaints/${id}`, {
 // //       headers: { Authorization: `Bearer ${token}` }
 // //     })
-// //       .then(res => {
-// //         if (!res.ok) throw new Error("Failed");
-// //         return res.json();
-// //       })
-// //       .then(data => {
-// //         setComplaint(data);
-// //         // ✅ FIX: Use the helper to jump to the correct tab
-// //         setActiveTab(getTabForStatus(data.currentStatus));
-// //         setLoading(false);
-// //       })
-// //       .catch(() => router.push("/officer"));
+// //     .then(res => res.json())
+// //     .then(data => {
+// //       setComplaint(data);
+// //       setActiveTab(getTabForStatus(data.currentStatus));
+// //       setLoading(false);
+// //     })
+// //     .catch(() => router.push("/officer"));
 // //   }, [id, router]);
-
-// //   // Helpers
-// //   function fileToBase64(file: File): Promise<string> {
-// //     return new Promise((resolve, reject) => {
-// //       const reader = new FileReader();
-// //       reader.onload = () => resolve(String(reader.result));
-// //       reader.onerror = reject;
-// //       reader.readAsDataURL(file);
-// //     });
-// //   }
-
-// //   // async function postAction(url: string, method = "POST", body: any) {
-// //   //   const token = localStorage.getItem("civic_token");
-// //   //   const res = await fetch(`${API}${url}`, {
-// //   //     method,
-// //   //     headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
-// //   //     body: JSON.stringify(body),
-// //   //   });
-// //   //   if (!res.ok) {
-// //   //     const err = await res.json();
-// //   //     throw new Error(err.message || "Request failed");
-// //   //   }
-// //   //   return res.json();
-// //   // }
 
 // //   async function postAction(url: string, method = "POST", body: any) {
 // //     const token = localStorage.getItem("civic_token");
-
-// //     // ✅ FIX: Auto-detect FormData to avoid setting Content-Type manually
 // //     const headers: any = { "Authorization": `Bearer ${token}` };
-// //     if (!(body instanceof FormData)) {
-// //       headers["Content-Type"] = "application/json";
-// //     }
+// //     if (!(body instanceof FormData)) headers["Content-Type"] = "application/json";
 
-// //     const res = await fetch(`${API}${url}`, {
-// //       method,
-// //       headers,
-// //       body: body instanceof FormData ? body : JSON.stringify(body),
-// //     });
+// //     const res = await fetch(`${API}${url}`, { method, headers, body: body instanceof FormData ? body : JSON.stringify(body) });
 // //     if (!res.ok) {
 // //       const err = await res.json();
 // //       throw new Error(err.message || "Request failed");
 // //     }
 // //     return res.json();
 // //   }
-// //   // ... rest of function stays the same
 
-// //   // --- ACTIONS ---
-// //   // async function saveAssignment() {
-// //   //   if (!confirm("Confirm assignment?")) return;
-// //   //   setSubmitting(true);
-// //   //   try {
-// //   //     await postAction(`/complaints/${id}/assign`, "PATCH", { officerName });
-// //   //     alert("✅ Assigned Successfully");
-// //   //     window.location.reload();
-// //   //   } catch (e: any) {
-// //   //     alert("Error: " + e.message);
-// //   //   } finally {
-// //   //     setSubmitting(false);
-// //   //   }
-// //   // }
-
-// //   async function saveAssignment() {
-// //     // ✅ FIX: Validation
-// //     if (!officerName.trim()) return alert("Please enter Officer Name");
-
-// //     if (!confirm("Confirm assignment?")) return;
-// //     setSubmitting(true);
-// //     try {
-// //       await postAction(`/complaints/${id}/assign`, "PATCH", { officerName });
-// //       alert("✅ Assigned Successfully");
-// //       window.location.reload();
-// //     } catch (e: any) {
-// //       alert("Error: " + e.message);
-// //     } finally {
-// //       setSubmitting(false);
+// //   // ✅ NEW: Explicit Location Button Handler
+// //   const handleGetLocation = () => {
+// //     setLocStatus("loading");
+// //     if (!navigator.geolocation) {
+// //       alert("Geolocation is not supported by your browser");
+// //       setLocStatus("error");
+// //       return;
 // //     }
-// //   }
 
-// //   async function saveStageUpdate(targetStatus: string) {
-// //     if (!confirm(`Advance to ${targetStatus}?`)) return;
-// //     setSubmitting(true);
-// //     try {
-// //       await postAction(`/complaints/${id}/advance`, "POST", { nextStatus: targetStatus, note });
-// //       alert("✅ Status Updated");
-// //       window.location.reload();
-// //     } catch (e: any) {
-// //       alert("Error: " + e.message);
-// //     } finally {
-// //       setSubmitting(false);
-// //     }
-// //   }
-
-// //   // async function resolveJob() {
-// //   //   if (!file) return alert("📸 Photo required!");
-// //   //   setSubmitting(true);
-// //   //   try {
-// //   //     const fullBase64 = await fileToBase64(file);
-// //   //     const mediaBase64 = fullBase64.split(",")[1];
-
-// //   //     let lat = c.lat, lng = c.lng;
-// //   //     try {
-// //   //       const pos: any = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
-// //   //       lat = pos.coords.latitude;
-// //   //       lng = pos.coords.longitude;
-// //   //     } catch (e) { console.warn("GPS failed, using default"); }
-
-// //   //     await postAction(`/complaints/${id}/resolve`, "POST", { lat, lng, mediaBase64, note });
-// //   //     alert("🎉 Job Closed!");
-// //   //     router.push("/officer");
-// //   //   } catch (e: any) {
-// //   //     alert("Error: " + e.message);
-// //   //   } finally {
-// //   //     setSubmitting(false);
-// //   //   }
-// //   // }
-
-// //   // async function resolveJob() {
-// //   //   if (files.length === 0) return alert("📸 At least one photo required!");
-// //   //   setSubmitting(true);
-// //   //   try {
-// //   //     let lat = c.lat, lng = c.lng;
-// //   //     try {
-// //   //       const pos: any = await new Promise((res, rej) => navigator.geolocation.getCurrentPosition(res, rej, { timeout: 5000 }));
-// //   //       lat = pos.coords.latitude;
-// //   //       lng = pos.coords.longitude;
-// //   //     } catch (e) { console.warn("GPS failed, using default"); }
-
-// //   //     // ✅ FIX: Use FormData for files
-// //   //     const formData = new FormData();
-// //   //     formData.append("lat", String(lat));
-// //   //     formData.append("lng", String(lng));
-// //   //     formData.append("note", note);
-
-// //   //     files.forEach((file) => {
-// //   //       formData.append("images", file); // 'images' matches backend interceptor
-// //   //     });
-
-// //   //     await postAction(`/complaints/${id}/resolve`, "POST", formData);
-
-// //   //     alert("🎉 Job Closed!");
-// //   //     router.push("/officer");
-// //   //   } catch (e: any) {
-// //   //     alert("Error: " + e.message);
-// //   //   } finally {
-// //   //     setSubmitting(false);
-// //   //   }
-// //   // }
+// //     navigator.geolocation.getCurrentPosition(
+// //       (pos) => {
+// //         setGps({
+// //           lat: pos.coords.latitude,
+// //           lng: pos.coords.longitude
+// //         });
+// //         setLocStatus("success");
+// //       },
+// //       (err) => {
+// //         console.error(err);
+// //         alert("⚠️ GPS Failed: " + err.message + "\nMake sure location is enabled!");
+// //         setLocStatus("error");
+// //       },
+// //       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+// //     );
+// //   };
 
 // //   async function resolveJob() {
-// //     if (files.length === 0) return alert("📸 At least one photo required!");
+// //     if (files.length === 0) return alert("📸 Photo required!");
+// //     if (!gps) return alert("📍 Location required! Click 'Tag Location'.");
+
 // //     setSubmitting(true);
-    
 // //     try {
-// //       // 1. Initialize variables (Undefined initially to force GPS)
-// //       let lat = null;
-// //       let lng = null;
-
-// //       try {
-// //         const pos: any = await new Promise((resolve, reject) => {
-// //           navigator.geolocation.getCurrentPosition(resolve, reject, {
-// //             enableHighAccuracy: true, // Request best possible GPS
-// //             timeout: 10000,           // Wait up to 10 seconds
-// //             maximumAge: 0             // Do not use cached location
-// //           });
-// //         });
-// //         lat = pos.coords.latitude;
-// //         lng = pos.coords.longitude;
-// //       } catch (e) {
-// //         // ❌ ERROR: GPS Failed - STOP the process
-// //         setSubmitting(false);
-// //         return alert("⚠️ Location Access Required!\n\nPlease enable GPS permissions to close this ticket.");
-// //       }
-
-// //       // 2. Prepare Data
 // //       const formData = new FormData();
-// //       formData.append("lat", String(lat));
-// //       formData.append("lng", String(lng));
+// //       formData.append("lat", String(gps.lat)); // Use fetched GPS
+// //       formData.append("lng", String(gps.lng));
 // //       formData.append("note", note);
       
-// //       files.forEach((file) => {
-// //         formData.append("images", file);
-// //       });
+// //       files.forEach((file) => formData.append("images", file));
 
 // //       await postAction(`/complaints/${id}/resolve`, "POST", formData);
-      
 // //       alert("🎉 Job Closed!");
 // //       router.push("/officer");
 // //     } catch (e: any) {
@@ -1913,22 +2396,24 @@
 // //     }
 // //   }
 
-// //   // --- HISTORY FINDER ---
-// //   // Looks through the event log to find what happened in previous stages
+// //   // File Handlers...
+// //   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+// //     if (e.target.files && e.target.files.length > 0) {
+// //         const newFiles = Array.from(e.target.files);
+// //         setFiles(prev => [...prev, ...newFiles].slice(0, 5));
+// //         e.target.value = ""; 
+// //     }
+// //   };
+// //   const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index));
+
+// //   // --- HISTORY ---
 // //   function getStageHistory(stageId: string) {
 // //     if (!c || !c.events) return null;
-
-// //     // Map Tab ID to Event Type
 // //     const typeMap: Record<string, string> = {
-// //       'ASSIGNED': 'ASSIGNED',
-// //       'INSPECTION': 'INSPECTION_STARTED',
-// //       'WORK_IN_PROGRESS': 'WORK_STARTED',
-// //       'RESOLVED': 'RESOLVED'
+// //       'ASSIGNED': 'ASSIGNED', 'INSPECTION': 'INSPECTION_STARTED', 
+// //       'WORK_IN_PROGRESS': 'WORK_STARTED', 'RESOLVED': 'RESOLVED'
 // //     };
-
-// //     const targetType = typeMap[stageId];
-// //     // Find the latest event of this type
-// //     return c.events.filter((e: any) => e.type === targetType).pop();
+// //     return c.events.filter((e: any) => e.type === typeMap[stageId]).pop(); 
 // //   }
 
 // //   if (loading || !c) return <div className="min-h-screen bg-black text-white p-10">Loading...</div>;
@@ -1936,33 +2421,10 @@
 // //   const currentStageIndex = STAGES.findIndex(s => s.id === c.currentStatus);
 // //   const activeTabIndex = STAGES.findIndex(s => s.id === activeTab);
 // //   const progressPercent = (Math.max(0, currentStageIndex) / (STAGES.length - 1)) * 100;
-
+  
 // //   const isTabCompleted = activeTabIndex <= currentStageIndex;
-// //   const isTabLocked = activeTabIndex > currentStageIndex + 1;
-// //   const historyEvent = isTabCompleted ? getStageHistory(activeTab) : null;
-
-// //   // ✅ 1. Handle File Appending (Add More)
-// //   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-// //     if (e.target.files && e.target.files.length > 0) {
-// //       const newFiles = Array.from(e.target.files);
-// //       setFiles(prev => {
-// //         // Combine old + new, then slice to max 5
-// //         const combined = [...prev, ...newFiles];
-// //         if (combined.length > 5) {
-// //           alert("Maximum 5 photos allowed. First 5 kept.");
-// //           return combined.slice(0, 5);
-// //         }
-// //         return combined;
-// //       });
-// //       // Reset input value so the same file can be selected again if needed
-// //       e.target.value = "";
-// //     }
-// //   };
-
-// //   // ✅ 2. Remove File
-// //   const removeFile = (index: number) => {
-// //     setFiles(prev => prev.filter((_, i) => i !== index));
-// //   };
+// //   const showHistory = (isTabCompleted && activeTab !== getTabForStatus(c.currentStatus)) || (activeTab === 'RESOLVED' && c.currentStatus === 'RESOLVED');
+// //   const historyEvent = showHistory ? getStageHistory(activeTab) : null;
 
 // //   return (
 // //     <main className="min-h-screen bg-black text-zinc-200 font-sans pb-20">
@@ -1974,6 +2436,7 @@
 // //       </nav>
 
 // //       <div className="max-w-xl mx-auto p-6 space-y-8">
+// //         {/* HEADER & STEPPER (Kept same as before) */}
 // //         <header>
 // //           <h1 className="text-2xl font-bold text-white mb-2">{c.title}</h1>
 // //           <div className="flex items-center gap-2 text-sm text-zinc-400">
@@ -1982,7 +2445,6 @@
 // //           </div>
 // //         </header>
 
-// //         {/* STEPPER */}
 // //         <div className="relative pt-2 pb-6 px-2">
 // //           <div className="absolute top-5 left-2 right-2 h-1 bg-zinc-800 rounded-full" />
 // //           <div className="absolute top-5 left-2 h-1 rounded-full transition-all duration-700 bg-gradient-to-r from-blue-600 to-green-500" style={{ width: `${progressPercent}%` }} />
@@ -1990,14 +2452,12 @@
 // //             {STAGES.map((stage, idx) => {
 // //               const isCompleted = idx <= currentStageIndex;
 // //               const isActive = stage.id === activeTab;
-// //               const isLocked = idx > currentStageIndex + 1;
-
 // //               return (
-// //                 <button
-// //                   key={stage.id}
-// //                   disabled={isLocked}
-// //                   onClick={() => { if (!isLocked) { setActiveTab(stage.id); setNote(""); } }}
-// //                   className={`flex flex-col items-center gap-2 group outline-none transition-all ${isLocked ? 'opacity-40 cursor-not-allowed grayscale' : 'cursor-pointer'}`}
+// //                 <button 
+// //                   key={stage.id} 
+// //                   disabled={idx > currentStageIndex + 1}
+// //                   onClick={() => { if (idx <= currentStageIndex + 1) setActiveTab(stage.id); }}
+// //                   className={`flex flex-col items-center gap-2 group outline-none transition-all ${idx > currentStageIndex + 1 ? 'opacity-40' : ''}`}
 // //                 >
 // //                   <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isActive ? 'scale-110 border-blue-400 bg-zinc-900 text-white' : isCompleted ? 'bg-zinc-900 border-green-500 text-green-500' : 'bg-black border-zinc-800 text-zinc-700'}`}>
 // //                     <stage.icon size={16} strokeWidth={isActive ? 2.5 : 2} />
@@ -2011,267 +2471,136 @@
 
 // //         {/* CONTENT AREA */}
 // //         <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
-// //           <div className="flex items-center gap-3 mb-6 pb-4 border-b border-zinc-800">
-// //             <div className="p-2 bg-blue-500/10 rounded-lg text-blue-400">
-// //               {(() => { const I = STAGES.find(s => s.id === activeTab)?.icon || MapPin; return <I size={20} /> })()}
-// //             </div>
-// //             <div>
-// //               <h3 className="font-bold text-lg text-white">{STAGES.find(s => s.id === activeTab)?.label} Phase</h3>
-// //               {isTabCompleted && <span className="text-xs text-green-400 font-medium flex items-center gap-1"><Check size={12} /> Completed</span>}
-// //               {isTabLocked && <span className="text-xs text-zinc-600 font-medium">🔒 Locked</span>}
-// //             </div>
-// //           </div>
-
-// //           {/* yaha se neech tak 1 section hai */}
-
-// //           {/* --- READ ONLY HISTORY VIEW --- */}
-// //           {/* {isTabCompleted && historyEvent && (
-// //             <div className="space-y-4 animate-in fade-in duration-300">
-// //               <div className="bg-black/40 border border-zinc-800 rounded-xl p-4 space-y-3"> */}
-// //           {/* Timestamp */}
-// //           {/* <div className="flex items-center gap-2 text-xs text-zinc-500 mb-2">
-// //                   <Clock size={12} />
-// //                   Completed on {new Date(historyEvent.createdAt).toLocaleString()}
-// //                 </div> */}
-
-// //           {/* Notes content */}
-// //           {/* <div className="flex gap-3">
-// //                   <div className="mt-0.5"><FileText size={16} className="text-zinc-400" /></div>
-// //                   <div className="text-sm text-zinc-200">
-// //                     {historyEvent.data?.note || historyEvent.data?.reason || "No notes provided."}
+          
+// //           {/* HISTORY VIEW (Same as before) */}
+// //           {showHistory && historyEvent && (
+// //             <div className="space-y-4">
+// //                <div className="bg-black/40 border border-zinc-800 rounded-xl p-4 space-y-3">
+// //                   <div className="flex items-center gap-2 text-xs text-zinc-500 mb-2">
+// //                      <Clock size={12} /> Completed on {new Date(historyEvent.createdAt).toLocaleString()}
 // //                   </div>
-// //                 </div> */}
-
-// //           {/* Proof Image (Only for Resolved) */}
-// //           {/* {historyEvent.data?.proofUrl && (
-// //                   <div className="mt-4">
-// //                     <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Proof of Work</p>
-// //                     <img src={`${API}${historyEvent.data.proofUrl}`} alt="Proof" className="rounded-lg border border-zinc-700 w-full h-48 object-cover" />
-// //                   </div>
-// //                 )}
-// //               </div>
-
-// //               {activeTab !== 'RESOLVED' && (
-// //                 <div className="text-center">
-// //                   <button onClick={() => {
-// //                     // Logic to jump to current active tab
-// //                     const current = STAGES.find(s => s.id === c.currentStatus);
-// //                     if (current) setActiveTab(current.id);
-// //                   }} className="text-xs text-blue-400 hover:text-blue-300 underline">
-// //                     Return to Active Task &rarr;
-// //                   </button>
-// //                 </div>
-// //               )}
-// //             </div>
-// //           )} */}
-
-// //           {/* yaha tak secion ka end hai */}
-
-// //           {/* --- READ ONLY HISTORY VIEW --- */}
-// //           {/* ✅ FIX: Show this block if tab is completed, even if historyEvent is missing */}
-// //           {isTabCompleted && (
-// //             <div className="space-y-4 animate-in fade-in duration-300">
-// //               <div className="bg-black/40 border border-zinc-800 rounded-xl p-4 space-y-3">
-// //                 {historyEvent ? (
-// //                   <>
-// //                     <div className="flex items-center gap-2 text-xs text-zinc-500 mb-2">
-// //                       <Clock size={12} />
-// //                       Completed on {new Date(historyEvent.createdAt).toLocaleString()}
-// //                     </div>
-
-// //                     <div className="flex gap-3">
-// //                       <div className="mt-0.5"><FileText size={16} className="text-zinc-400" /></div>
-// //                       <div className="text-sm text-zinc-200">
-// //                         {historyEvent.data?.note || historyEvent.data?.reason || "No notes provided."}
+// //                   <div className="text-sm text-zinc-200">{historyEvent.data?.note}</div>
+// //                   {/* PROOF IMAGES */}
+// //                   {(historyEvent.data?.proofUrls || [historyEvent.data?.proofUrl]).filter(Boolean).length > 0 && (
+// //                       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mt-3">
+// //                         {(historyEvent.data.proofUrls || [historyEvent.data.proofUrl]).map((url: string, idx: number) => (
+// //                           <img key={idx} src={`${API}${url}`} className="rounded-lg border border-zinc-700 w-24 h-24 object-cover shrink-0" />
+// //                         ))}
 // //                       </div>
-// //                     </div>
-
-// //                     {/* {historyEvent.data?.proofUrl && (
-// //                       <div className="mt-4">
-// //                         <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Proof of Work</p>
-// //                         <img src={`${API}${historyEvent.data.proofUrl}`} alt="Proof" className="rounded-lg border border-zinc-700 w-full h-48 object-cover" />
-// //                       </div>
-// //                     )} */}
-// //                     {/* ✅ UPDATED: Support Multiple Proof Images */}
-// //                     {(historyEvent.data?.proofUrls?.length > 0 || historyEvent.data?.proofUrl) && (
-// //                       <div className="mt-4">
-// //                         <p className="text-xs font-bold text-zinc-500 uppercase mb-2">Proof of Work</p>
-// //                         <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-// //                            {/* Handle both new Array format and old Single format */}
-// //                            {(historyEvent.data.proofUrls || [historyEvent.data.proofUrl]).map((url: string, idx: number) => (
-// //                               <img 
-// //                                 key={idx} 
-// //                                 src={`${API}${url}`} 
-// //                                 alt={`Proof ${idx + 1}`} 
-// //                                 className="rounded-lg border border-zinc-700 w-32 h-24 object-cover shrink-0" 
-// //                               />
-// //                            ))}
-// //                         </div>
-// //                       </div>
-// //                     )}
-// //                   </>
-// //                 ) : (
-// //                   /* ✅ FIX: Fallback if history is missing but stage is done */
-// //                   <div className="text-center py-4">
-// //                     <p className="text-zinc-500 text-sm">Step completed (Details unavailable)</p>
-// //                   </div>
-// //                 )}
-// //               </div>
-
-// //               {/* ✅ FIX: Button is now visible regardless of historyEvent */}
-// //               {activeTab !== getTabForStatus(c.currentStatus) && (
-// //                 <div className="text-center">
-// //                   <button onClick={() => {
-// //                     // ✅ FIX: Use the helper to jump to the correct active tab
-// //                     setActiveTab(getTabForStatus(c.currentStatus));
-// //                   }} className="text-xs text-blue-400 hover:text-blue-300 underline cursor-pointer">
-// //                     Return to Active Task &rarr;
-// //                   </button>
-// //                 </div>
-// //               )}
-// //             </div>
-// //           )}
-
-// //           {/* --- ACTIVE FORMS (Only show if NOT completed) --- */}
-// //           {!isTabCompleted && !isTabLocked && (
-// //             <>
-// //               {/* 1. ASSIGNED FORM */}
-// //               {activeTab === 'ASSIGNED' && (
-// //                 <div className="space-y-4">
-// //                   <input type="text" value={officerName} onChange={(e) => setOfficerName(e.target.value)} placeholder="Officer Name..." className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none" />
-// //                   <button onClick={saveAssignment} disabled={submitting} className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition">
-// //                     {submitting ? "Saving..." : "Confirm Assignment"}
-// //                   </button>
-// //                 </div>
-// //               )}
-
-// //               {/* 2. INSPECTION FORM */}
-// //               {activeTab === 'INSPECTION' && (
-// //                 <div className="space-y-4">
-// //                   <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Site observations..." className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" />
-// //                   <button onClick={() => saveStageUpdate('INSPECTION')} disabled={submitting} className="w-full py-3 bg-white text-black font-bold rounded-xl hover:bg-zinc-200 transition">Start Inspection</button>
-// //                 </div>
-// //               )}
-
-// //               {/* 3. WORK FORM */}
-// //               {activeTab === 'WORK_IN_PROGRESS' && (
-// //                 <div className="space-y-4">
-// //                   <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Work details..." className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" />
-// //                   <button onClick={() => saveStageUpdate('WORK_IN_PROGRESS')} disabled={submitting} className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-xl transition">Start Work</button>
-// //                 </div>
-// //               )}
-
-// //               {/* 4. RESOLVED FORM */}
-// //               {/* {activeTab === 'RESOLVED' && (
-// //                 <div className="space-y-5">
-// //                   <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Final resolution notes..." className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" /> */}
-// //               {/* <div className="relative group h-28 border-2 border-dashed border-zinc-700 rounded-xl flex items-center justify-center">
-// //                     <input type="file" accept="image/*" onChange={e => setFile(e.target.files?.[0] || null)} className="absolute inset-0 opacity-0 cursor-pointer" />
-// //                     {file ? <span className="text-green-400 flex items-center gap-2"><CheckCircle2 /> {file.name}</span> : <span className="text-zinc-500 flex items-center gap-2"><Camera /> Upload Proof</span>}
-// //                   </div> */}
-// //               {/* <div className="relative group h-32 border-2 border-dashed border-zinc-700 rounded-xl flex flex-col items-center justify-center bg-black/30 hover:bg-black/50 transition">
-// //                     <input
-// //                       type="file"
-// //                       multiple // ✅ Allow Multiple
-// //                       accept="image/*"
-// //                       onChange={(e) => e.target.files && setFiles(Array.from(e.target.files).slice(0, 5))}
-// //                       className="absolute inset-0 opacity-0 cursor-pointer z-10"
-// //                     />
-// //                     <Camera className="text-zinc-500 mb-2" />
-// //                     {files.length > 0 ? (
-// //                       <span className="text-green-400 font-medium text-sm">{files.length} images selected</span>
-// //                     ) : (
-// //                       <span className="text-zinc-500 text-sm">Click to upload proofs (Max 5)</span>
-// //                     )}
-// //                   </div> */}
-
-// //               {/* ✅ Add Preview Row */}
-// //               {/* {files.length > 0 && (
-// //                     <div className="flex gap-2 overflow-x-auto pb-2">
-// //                       {files.map((f, i) => (
-// //                         <div key={i} className="relative w-16 h-16 shrink-0 border border-zinc-700 rounded-lg overflow-hidden">
-// //                           <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" alt="preview" />
-// //                         </div>
-// //                       ))}
-// //                     </div>
 // //                   )}
-// //                   <button onClick={resolveJob} disabled={submitting} className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition">
-// //                     {submitting ? "Closing..." : "Close Ticket"}
+// //                </div>
+// //                {activeTab !== getTabForStatus(c.currentStatus) && (
+// //                   <button onClick={() => setActiveTab(getTabForStatus(c.currentStatus))} className="w-full text-center text-xs text-blue-400 hover:text-blue-300 underline">
+// //                       Return to Active Task &rarr;
 // //                   </button>
-// //                 </div>
-// //               )} */}
-
-// //               {activeTab === 'RESOLVED' && (
-// //                 <div className="space-y-5">
-// //                   <textarea
-// //                     value={note}
-// //                     onChange={(e) => setNote(e.target.value)}
-// //                     placeholder="Final resolution notes..."
-// //                     className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none"
-// //                   />
-
-// //                   {/* ✅ UPDATED FILE SECTION */}
-// //                   <div className="space-y-2">
-// //                     <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-
-// //                       {/* 1. Preview Existing Files */}
-// //                       {files.map((f, i) => (
-// //                         <div key={i} className="relative w-24 h-24 shrink-0 border border-zinc-700 rounded-xl overflow-hidden group">
-// //                           <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" alt="preview" />
-// //                           <button
-// //                             onClick={() => removeFile(i)}
-// //                             className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1 hover:bg-red-600 transition"
-// //                           >
-// //                             <X size={12} />
-// //                           </button>
-// //                         </div>
-// //                       ))}
-
-// //                       {/* 2. Add Button (Only visible if count < 5) */}
-// //                       {files.length < 5 && (
-// //                         <div className="relative w-24 h-24 shrink-0 border-2 border-dashed border-zinc-700 rounded-xl flex flex-col items-center justify-center bg-black/30 hover:bg-zinc-900/50 transition cursor-pointer">
-// //                           <input
-// //                             type="file"
-// //                             multiple
-// //                             accept="image/*"
-// //                             onChange={handleFileChange}
-// //                             className="absolute inset-0 opacity-0 cursor-pointer z-10"
-// //                           />
-// //                           <Plus size={24} className="text-zinc-500 mb-1" />
-// //                           <span className="text-[10px] text-zinc-500 font-medium">
-// //                             {files.length === 0 ? "Upload" : "Add More"}
-// //                           </span>
-// //                         </div>
-// //                       )}
-// //                     </div>
-
-// //                     {/* Counter */}
-// //                     <div className="text-right text-xs text-zinc-500">
-// //                       {files.length}/5 Photos Selected
-// //                     </div>
-// //                   </div>
-
-// //                   <button onClick={resolveJob} disabled={submitting} className="w-full py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl transition">
-// //                     {submitting ? "Closing..." : "Close Ticket"}
-// //                   </button>
-// //                 </div>
-// //               )}
-
-// //             </>
-// //           )}
-
-// //           {/* COMPLETED MSG */}
-// //           {c.currentStatus === 'RESOLVED' && activeTab === 'RESOLVED' && !historyEvent && (
-// //             <div className="text-center p-6 bg-green-900/20 rounded-xl border border-green-900 text-green-400 font-medium">
-// //               ✅ This ticket is closed.
+// //                )}
 // //             </div>
 // //           )}
 
+// //           {/* ACTIVE FORM */}
+// //           {!showHistory && (
+// //              <>
+// //                 {/* ... Assigned / Inspection / Work Forms omitted for brevity (same as before) ... */}
+// //                 {activeTab === 'ASSIGNED' && (
+// //                   <div className="space-y-4">
+// //                     <input type="text" value={officerName} onChange={(e) => setOfficerName(e.target.value)} placeholder="Officer Name..." className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none" />
+// //                     <button onClick={async () => {
+// //                        if(!officerName) return alert("Name required");
+// //                        await postAction(`/complaints/${id}/assign`, "PATCH", { officerName });
+// //                        window.location.reload();
+// //                     }} className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl">Confirm Assignment</button>
+// //                   </div>
+// //                 )}
+
+// //                 {activeTab === 'INSPECTION' && (
+// //                    <div className="space-y-4">
+// //                      <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Observations..." className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-white"/>
+// //                      <button onClick={async () => {
+// //                         await postAction(`/complaints/${id}/advance`, "POST", { nextStatus: 'INSPECTION', note });
+// //                         window.location.reload();
+// //                      }} className="w-full py-3 bg-white text-black font-bold rounded-xl">Start Inspection</button>
+// //                    </div>
+// //                 )}
+                
+// //                 {activeTab === 'WORK_IN_PROGRESS' && (
+// //                    <div className="space-y-4">
+// //                      <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Work details..." className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-white"/>
+// //                      <button onClick={async () => {
+// //                         await postAction(`/complaints/${id}/advance`, "POST", { nextStatus: 'WORK_IN_PROGRESS', note });
+// //                         window.location.reload();
+// //                      }} className="w-full py-3 bg-amber-600 text-white font-bold rounded-xl">Start Work</button>
+// //                    </div>
+// //                 )}
+
+// //                 {/* ✅ RESOLVED FORM (UPDATED) */}
+// //                 {activeTab === 'RESOLVED' && (
+// //                   <div className="space-y-5">
+// //                     <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Final resolution notes..." className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" />
+                    
+// //                     {/* 1. FILE UPLOAD */}
+// //                     <div className="space-y-2">
+// //                         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+// //                           {files.map((f, i) => (
+// //                             <div key={i} className="relative w-20 h-20 shrink-0 border border-zinc-700 rounded-xl overflow-hidden group">
+// //                                <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" />
+// //                                <button onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1"><X size={12}/></button>
+// //                             </div>
+// //                           ))}
+// //                           {files.length < 5 && (
+// //                               <div className="relative w-20 h-20 shrink-0 border-2 border-dashed border-zinc-700 rounded-xl flex flex-col items-center justify-center bg-black/30 hover:bg-zinc-900/50 cursor-pointer">
+// //                                   <input type="file" multiple accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+// //                                   <Plus size={20} className="text-zinc-500" />
+// //                               </div>
+// //                           )}
+// //                         </div>
+// //                     </div>
+
+// //                     {/* 2. ✅ COMPULSORY LOCATION BUTTON */}
+// //                     <div className="bg-black/30 border border-zinc-800 rounded-xl p-3 flex items-center justify-between">
+// //                         <div className="flex items-center gap-3">
+// //                            <div className={`p-2 rounded-full ${locStatus === 'success' ? 'bg-green-900/30 text-green-400' : 'bg-zinc-800 text-zinc-500'}`}>
+// //                               <LocateFixed size={20} />
+// //                            </div>
+// //                            <div className="text-sm">
+// //                               <p className="font-medium text-zinc-300">Geo-tagging</p>
+// //                               <p className="text-xs text-zinc-500">
+// //                                 {locStatus === 'idle' && "Required for closure"}
+// //                                 {locStatus === 'loading' && "Fetching location..."}
+// //                                 {locStatus === 'success' && "Location Locked ✅"}
+// //                                 {locStatus === 'error' && "Location Failed ❌"}
+// //                               </p>
+// //                            </div>
+// //                         </div>
+                        
+// //                         {locStatus !== 'success' && (
+// //                           <button 
+// //                             onClick={handleGetLocation} 
+// //                             disabled={locStatus === 'loading'}
+// //                             className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg disabled:opacity-50"
+// //                           >
+// //                             {locStatus === 'loading' ? '...' : 'Tag Location'}
+// //                           </button>
+// //                         )}
+// //                     </div>
+
+// //                     <button 
+// //                       onClick={resolveJob} 
+// //                       // Disable until both files AND gps are present
+// //                       disabled={submitting || files.length === 0 || locStatus !== 'success'} 
+// //                       className="w-full py-3 bg-green-600 hover:bg-green-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white font-bold rounded-xl transition"
+// //                     >
+// //                       {submitting ? "Closing..." : "Close Ticket"}
+// //                     </button>
+// //                   </div>
+// //                 )}
+// //              </>
+// //           )}
 // //         </div>
 // //       </div>
 // //     </main>
 // //   );
 // // }
+
 
 // "use client";
 
@@ -2306,7 +2635,7 @@
 //   const [files, setFiles] = useState<File[]>([]); 
 //   const [submitting, setSubmitting] = useState(false);
 
-//   // ✅ NEW: Location State
+//   // Location State
 //   const [gps, setGps] = useState<{lat: number, lng: number} | null>(null);
 //   const [locStatus, setLocStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
 
@@ -2347,7 +2676,6 @@
 //     return res.json();
 //   }
 
-//   // ✅ NEW: Explicit Location Button Handler
 //   const handleGetLocation = () => {
 //     setLocStatus("loading");
 //     if (!navigator.geolocation) {
@@ -2380,7 +2708,7 @@
 //     setSubmitting(true);
 //     try {
 //       const formData = new FormData();
-//       formData.append("lat", String(gps.lat)); // Use fetched GPS
+//       formData.append("lat", String(gps.lat));
 //       formData.append("lng", String(gps.lng));
 //       formData.append("note", note);
       
@@ -2396,7 +2724,6 @@
 //     }
 //   }
 
-//   // File Handlers...
 //   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 //     if (e.target.files && e.target.files.length > 0) {
 //         const newFiles = Array.from(e.target.files);
@@ -2406,7 +2733,6 @@
 //   };
 //   const removeFile = (index: number) => setFiles(prev => prev.filter((_, i) => i !== index));
 
-//   // --- HISTORY ---
 //   function getStageHistory(stageId: string) {
 //     if (!c || !c.events) return null;
 //     const typeMap: Record<string, string> = {
@@ -2416,7 +2742,7 @@
 //     return c.events.filter((e: any) => e.type === typeMap[stageId]).pop(); 
 //   }
 
-//   if (loading || !c) return <div className="min-h-screen bg-black text-white p-10">Loading...</div>;
+//   if (loading || !c) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Loading...</div>;
 
 //   const currentStageIndex = STAGES.findIndex(s => s.id === c.currentStatus);
 //   const activeTabIndex = STAGES.findIndex(s => s.id === activeTab);
@@ -2432,22 +2758,30 @@
 //         <Link href="/officer" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
 //           <ArrowLeft size={18} /> <span className="font-medium text-sm">Back</span>
 //         </Link>
-//         <div className="text-xs font-bold text-zinc-500 uppercase tracking-widest">{c.id.slice(0, 8)}</div>
+//         <div className="text-[10px] sm:text-xs font-bold text-zinc-500 uppercase tracking-widest">{c.id.slice(0, 8)}</div>
 //       </nav>
 
-//       <div className="max-w-xl mx-auto p-6 space-y-8">
-//         {/* HEADER & STEPPER (Kept same as before) */}
+//       <div className="max-w-xl mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
+        
+//         {/* HEADER */}
 //         <header>
-//           <h1 className="text-2xl font-bold text-white mb-2">{c.title}</h1>
-//           <div className="flex items-center gap-2 text-sm text-zinc-400">
-//             <span className="px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 text-xs font-bold border border-blue-800">{c.category}</span>
+//           <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">{c.title}</h1>
+//           <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-zinc-400">
+//             <span className="px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 text-[10px] sm:text-xs font-bold border border-blue-800">{c.category}</span>
 //             <span>• {c.ward?.name}</span>
 //           </div>
 //         </header>
 
-//         <div className="relative pt-2 pb-6 px-2">
-//           <div className="absolute top-5 left-2 right-2 h-1 bg-zinc-800 rounded-full" />
-//           <div className="absolute top-5 left-2 h-1 rounded-full transition-all duration-700 bg-gradient-to-r from-blue-600 to-green-500" style={{ width: `${progressPercent}%` }} />
+//         {/* RESPONSIVE STEPPER */}
+//         <div className="relative pt-2 pb-6 px-1 sm:px-2">
+//           {/* Background Track Line */}
+//           <div className="absolute top-4 sm:top-5 left-4 sm:left-6 right-4 sm:right-6 h-1 bg-zinc-800 rounded-full" />
+//           {/* Active Track Line */}
+//           <div 
+//             className="absolute top-4 sm:top-5 left-4 sm:left-6 h-1 rounded-full transition-all duration-700 bg-gradient-to-r from-blue-600 to-green-500" 
+//             style={{ width: `calc(${progressPercent}% - 32px)` }} 
+//           />
+          
 //           <div className="relative flex justify-between z-10">
 //             {STAGES.map((stage, idx) => {
 //               const isCompleted = idx <= currentStageIndex;
@@ -2457,12 +2791,17 @@
 //                   key={stage.id} 
 //                   disabled={idx > currentStageIndex + 1}
 //                   onClick={() => { if (idx <= currentStageIndex + 1) setActiveTab(stage.id); }}
-//                   className={`flex flex-col items-center gap-2 group outline-none transition-all ${idx > currentStageIndex + 1 ? 'opacity-40' : ''}`}
+//                   className={`flex flex-col items-center gap-1.5 sm:gap-2 group outline-none transition-all ${idx > currentStageIndex + 1 ? 'opacity-40' : ''}`}
 //                 >
-//                   <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all ${isActive ? 'scale-110 border-blue-400 bg-zinc-900 text-white' : isCompleted ? 'bg-zinc-900 border-green-500 text-green-500' : 'bg-black border-zinc-800 text-zinc-700'}`}>
-//                     <stage.icon size={16} strokeWidth={isActive ? 2.5 : 2} />
+//                   <div className={`
+//                     w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 transition-all 
+//                     ${isActive ? 'scale-110 border-blue-400 bg-zinc-900 text-white' : isCompleted ? 'bg-zinc-900 border-green-500 text-green-500' : 'bg-black border-zinc-800 text-zinc-700'}
+//                   `}>
+//                     <stage.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={isActive ? 2.5 : 2} />
 //                   </div>
-//                   <div className={`text-[10px] font-bold uppercase tracking-wider ${isActive ? 'text-white' : 'text-zinc-600'}`}>{stage.label}</div>
+//                   <div className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isActive ? 'text-white' : 'text-zinc-600'}`}>
+//                     {stage.label}
+//                   </div>
 //                 </button>
 //               );
 //             })}
@@ -2470,27 +2809,27 @@
 //         </div>
 
 //         {/* CONTENT AREA */}
-//         <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
+//         <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 sm:p-6">
           
-//           {/* HISTORY VIEW (Same as before) */}
+//           {/* HISTORY VIEW */}
 //           {showHistory && historyEvent && (
 //             <div className="space-y-4">
-//                <div className="bg-black/40 border border-zinc-800 rounded-xl p-4 space-y-3">
-//                   <div className="flex items-center gap-2 text-xs text-zinc-500 mb-2">
+//                <div className="bg-black/40 border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-3">
+//                   <div className="flex items-center gap-2 text-[10px] sm:text-xs text-zinc-500 mb-2">
 //                      <Clock size={12} /> Completed on {new Date(historyEvent.createdAt).toLocaleString()}
 //                   </div>
-//                   <div className="text-sm text-zinc-200">{historyEvent.data?.note}</div>
+//                   <div className="text-xs sm:text-sm text-zinc-200">{historyEvent.data?.note}</div>
 //                   {/* PROOF IMAGES */}
 //                   {(historyEvent.data?.proofUrls || [historyEvent.data?.proofUrl]).filter(Boolean).length > 0 && (
-//                       <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide mt-3">
+//                       <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar mt-3">
 //                         {(historyEvent.data.proofUrls || [historyEvent.data.proofUrl]).map((url: string, idx: number) => (
-//                           <img key={idx} src={`${API}${url}`} className="rounded-lg border border-zinc-700 w-24 h-24 object-cover shrink-0" />
+//                           <img key={idx} src={`${API}${url}`} className="rounded-lg border border-zinc-700 w-20 h-20 sm:w-24 sm:h-24 object-cover shrink-0" />
 //                         ))}
 //                       </div>
 //                   )}
 //                </div>
 //                {activeTab !== getTabForStatus(c.currentStatus) && (
-//                   <button onClick={() => setActiveTab(getTabForStatus(c.currentStatus))} className="w-full text-center text-xs text-blue-400 hover:text-blue-300 underline">
+//                   <button onClick={() => setActiveTab(getTabForStatus(c.currentStatus))} className="w-full text-center text-xs text-blue-400 hover:text-blue-300 underline p-2">
 //                       Return to Active Task &rarr;
 //                   </button>
 //                )}
@@ -2500,54 +2839,53 @@
 //           {/* ACTIVE FORM */}
 //           {!showHistory && (
 //              <>
-//                 {/* ... Assigned / Inspection / Work Forms omitted for brevity (same as before) ... */}
 //                 {activeTab === 'ASSIGNED' && (
 //                   <div className="space-y-4">
-//                     <input type="text" value={officerName} onChange={(e) => setOfficerName(e.target.value)} placeholder="Officer Name..." className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none" />
+//                     <input type="text" value={officerName} onChange={(e) => setOfficerName(e.target.value)} placeholder="Officer Name..." className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white outline-none focus:border-blue-500 transition" />
 //                     <button onClick={async () => {
 //                        if(!officerName) return alert("Name required");
 //                        await postAction(`/complaints/${id}/assign`, "PATCH", { officerName });
 //                        window.location.reload();
-//                     }} className="w-full py-3 bg-blue-600 text-white font-bold rounded-xl">Confirm Assignment</button>
+//                     }} className="w-full py-3 sm:py-3.5 bg-blue-600 text-white text-sm font-bold rounded-xl active:scale-95 transition">Confirm Assignment</button>
 //                   </div>
 //                 )}
 
 //                 {activeTab === 'INSPECTION' && (
 //                    <div className="space-y-4">
-//                      <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Observations..." className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-white"/>
+//                      <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Observations..." className="w-full h-28 sm:h-32 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-blue-500 transition resize-none"/>
 //                      <button onClick={async () => {
 //                         await postAction(`/complaints/${id}/advance`, "POST", { nextStatus: 'INSPECTION', note });
 //                         window.location.reload();
-//                      }} className="w-full py-3 bg-white text-black font-bold rounded-xl">Start Inspection</button>
+//                      }} className="w-full py-3 sm:py-3.5 bg-white text-black text-sm font-bold rounded-xl active:scale-95 transition">Start Inspection</button>
 //                    </div>
 //                 )}
                 
 //                 {activeTab === 'WORK_IN_PROGRESS' && (
 //                    <div className="space-y-4">
-//                      <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Work details..." className="w-full h-32 bg-black border border-zinc-700 rounded-xl p-3 text-white"/>
+//                      <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Work details..." className="w-full h-28 sm:h-32 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-amber-500 transition resize-none"/>
 //                      <button onClick={async () => {
 //                         await postAction(`/complaints/${id}/advance`, "POST", { nextStatus: 'WORK_IN_PROGRESS', note });
 //                         window.location.reload();
-//                      }} className="w-full py-3 bg-amber-600 text-white font-bold rounded-xl">Start Work</button>
+//                      }} className="w-full py-3 sm:py-3.5 bg-amber-600 text-white text-sm font-bold rounded-xl active:scale-95 transition">Start Work</button>
 //                    </div>
 //                 )}
 
-//                 {/* ✅ RESOLVED FORM (UPDATED) */}
+//                 {/* RESOLVED FORM */}
 //                 {activeTab === 'RESOLVED' && (
 //                   <div className="space-y-5">
-//                     <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Final resolution notes..." className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-white outline-none resize-none" />
+//                     <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Final resolution notes..." className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white outline-none focus:border-green-500 transition resize-none" />
                     
 //                     {/* 1. FILE UPLOAD */}
 //                     <div className="space-y-2">
-//                         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+//                         <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 no-scrollbar">
 //                           {files.map((f, i) => (
-//                             <div key={i} className="relative w-20 h-20 shrink-0 border border-zinc-700 rounded-xl overflow-hidden group">
+//                             <div key={i} className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 border border-zinc-700 rounded-xl overflow-hidden group">
 //                                <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" />
 //                                <button onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1"><X size={12}/></button>
 //                             </div>
 //                           ))}
 //                           {files.length < 5 && (
-//                               <div className="relative w-20 h-20 shrink-0 border-2 border-dashed border-zinc-700 rounded-xl flex flex-col items-center justify-center bg-black/30 hover:bg-zinc-900/50 cursor-pointer">
+//                               <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 border-2 border-dashed border-zinc-700 rounded-xl flex flex-col items-center justify-center bg-black/30 hover:bg-zinc-900/50 cursor-pointer transition">
 //                                   <input type="file" multiple accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
 //                                   <Plus size={20} className="text-zinc-500" />
 //                               </div>
@@ -2555,15 +2893,15 @@
 //                         </div>
 //                     </div>
 
-//                     {/* 2. ✅ COMPULSORY LOCATION BUTTON */}
-//                     <div className="bg-black/30 border border-zinc-800 rounded-xl p-3 flex items-center justify-between">
-//                         <div className="flex items-center gap-3">
-//                            <div className={`p-2 rounded-full ${locStatus === 'success' ? 'bg-green-900/30 text-green-400' : 'bg-zinc-800 text-zinc-500'}`}>
-//                               <LocateFixed size={20} />
+//                     {/* 2. COMPULSORY LOCATION BUTTON */}
+//                     <div className="bg-black/30 border border-zinc-800 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+//                         <div className="flex items-center gap-3 w-full">
+//                            <div className={`p-2 rounded-full shrink-0 ${locStatus === 'success' ? 'bg-green-900/30 text-green-400' : 'bg-zinc-800 text-zinc-500'}`}>
+//                               <LocateFixed size={18} className="sm:w-5 sm:h-5" />
 //                            </div>
-//                            <div className="text-sm">
-//                               <p className="font-medium text-zinc-300">Geo-tagging</p>
-//                               <p className="text-xs text-zinc-500">
+//                            <div className="min-w-0 flex-1">
+//                               <p className="font-medium text-xs sm:text-sm text-zinc-300">Geo-tagging</p>
+//                               <p className="text-[10px] sm:text-xs text-zinc-500 truncate">
 //                                 {locStatus === 'idle' && "Required for closure"}
 //                                 {locStatus === 'loading' && "Fetching location..."}
 //                                 {locStatus === 'success' && "Location Locked ✅"}
@@ -2576,7 +2914,7 @@
 //                           <button 
 //                             onClick={handleGetLocation} 
 //                             disabled={locStatus === 'loading'}
-//                             className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg disabled:opacity-50"
+//                             className="w-full sm:w-auto px-4 py-2 sm:px-3 sm:py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg disabled:opacity-50 transition shrink-0"
 //                           >
 //                             {locStatus === 'loading' ? '...' : 'Tag Location'}
 //                           </button>
@@ -2585,9 +2923,8 @@
 
 //                     <button 
 //                       onClick={resolveJob} 
-//                       // Disable until both files AND gps are present
 //                       disabled={submitting || files.length === 0 || locStatus !== 'success'} 
-//                       className="w-full py-3 bg-green-600 hover:bg-green-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white font-bold rounded-xl transition"
+//                       className="w-full py-3 sm:py-3.5 bg-green-600 hover:bg-green-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white text-sm font-bold rounded-xl transition active:scale-95"
 //                     >
 //                       {submitting ? "Closing..." : "Close Ticket"}
 //                     </button>
@@ -2600,6 +2937,7 @@
 //     </main>
 //   );
 // }
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -2607,7 +2945,9 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   ArrowLeft, MapPin, Search, Hammer, CheckCircle2, 
-  Camera, Check, Clock, FileText, X, Plus, LocateFixed 
+  Camera, Clock, FileText, X, Plus, LocateFixed,
+  Flame, AlertOctagon, Car, Wind, Activity, MessageSquare, ShieldAlert,
+  ChevronDown, ChevronUp, Send, ChevronLeft, ChevronRight, Navigation, Map
 } from "lucide-react";
 
 const API = process.env.NEXT_PUBLIC_API_BASE!;
@@ -2619,6 +2959,18 @@ const STAGES = [
   { id: 'RESOLVED', label: 'Resolved', icon: CheckCircle2 },
 ];
 
+// Helper for live distance calculation
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
 export default function OfficerResolvePage() {
   const { id } = useParams();
   const router = useRouter();
@@ -2627,15 +2979,24 @@ export default function OfficerResolvePage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<string>(""); 
 
+  // UI States
+  const [mobileView, setMobileView] = useState<'PROTOCOL' | 'CONTEXT'>('PROTOCOL');
+  const [lightbox, setLightbox] = useState<{ urls: string[], index: number } | null>(null);
+
   // Form Data
   const [officerName, setOfficerName] = useState("");
   const [note, setNote] = useState("");
   const [files, setFiles] = useState<File[]>([]); 
   const [submitting, setSubmitting] = useState(false);
 
-  // Location State
+  // Chat Data
+  const [updateText, setUpdateText] = useState("");
+  const [loadingUpdate, setLoadingUpdate] = useState(false);
+
+  // Location States
   const [gps, setGps] = useState<{lat: number, lng: number} | null>(null);
   const [locStatus, setLocStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [officerLiveLoc, setOfficerLiveLoc] = useState<{lat: number, lng: number} | null>(null); // For distance calc
 
   function getTabForStatus(status: string) {
     if (['CREATED', 'ACKNOWLEDGED'].includes(status)) return 'ASSIGNED';
@@ -2645,21 +3006,49 @@ export default function OfficerResolvePage() {
     return 'RESOLVED';
   }
 
-  useEffect(() => {
+  async function loadComplaint() {
     const token = localStorage.getItem("civic_token");
     if (!token) return router.push("/login");
-    
-    fetch(`${API}/complaints/${id}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-    .then(res => res.json())
-    .then(data => {
+    try {
+      const res = await fetch(`${API}/complaints/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
       setComplaint(data);
       setActiveTab(getTabForStatus(data.currentStatus));
       setLoading(false);
-    })
-    .catch(() => router.push("/officer"));
-  }, [id, router]);
+    } catch (e) {
+      router.push("/officer");
+    }
+  }
+
+  useEffect(() => { loadComplaint(); }, [id, router]);
+
+  // 🔥 NEW: Grab officer's background location once on load to show distance!
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => setOfficerLiveLoc({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
+        (err) => console.warn("Silent GPS fail for distance calc", err),
+        { timeout: 5000, maximumAge: 60000 }
+      );
+    }
+  }, []);
+
+  // Keyboard Navigation for Lightbox
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      setLightbox((prev) => {
+        if (!prev) return prev;
+        if (e.key === 'Escape') return null;
+        if (e.key === 'ArrowRight') return { ...prev, index: (prev.index + 1) % prev.urls.length };
+        if (e.key === 'ArrowLeft') return { ...prev, index: (prev.index - 1 + prev.urls.length) % prev.urls.length };
+        return prev;
+      });
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   async function postAction(url: string, method = "POST", body: any) {
     const token = localStorage.getItem("civic_token");
@@ -2674,6 +3063,21 @@ export default function OfficerResolvePage() {
     return res.json();
   }
 
+  async function handleAddUpdate(e: React.FormEvent) {
+    e.preventDefault();
+    if (!updateText.trim()) return;
+    setLoadingUpdate(true);
+    try {
+      await postAction(`/complaints/${id}/update`, "POST", { text: updateText });
+      setUpdateText(""); 
+      await loadComplaint();
+    } catch (e: any) {
+      alert("Failed to send update: " + e.message);
+    } finally {
+      setLoadingUpdate(false);
+    }
+  }
+
   const handleGetLocation = () => {
     setLocStatus("loading");
     if (!navigator.geolocation) {
@@ -2684,14 +3088,10 @@ export default function OfficerResolvePage() {
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
-        setGps({
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        });
+        setGps({ lat: pos.coords.latitude, lng: pos.coords.longitude });
         setLocStatus("success");
       },
       (err) => {
-        console.error(err);
         alert("⚠️ GPS Failed: " + err.message + "\nMake sure location is enabled!");
         setLocStatus("error");
       },
@@ -2709,7 +3109,6 @@ export default function OfficerResolvePage() {
       formData.append("lat", String(gps.lat));
       formData.append("lng", String(gps.lng));
       formData.append("note", note);
-      
       files.forEach((file) => formData.append("images", file));
 
       await postAction(`/complaints/${id}/resolve`, "POST", formData);
@@ -2740,7 +3139,9 @@ export default function OfficerResolvePage() {
     return c.events.filter((e: any) => e.type === typeMap[stageId]).pop(); 
   }
 
-  if (loading || !c) return <div className="min-h-screen bg-black text-white flex items-center justify-center">Loading...</div>;
+  const getImgUrl = (url: string) => url.startsWith("http") ? url : `${API}${url}`;
+
+  if (loading || !c) return <div className="min-h-screen bg-black text-white flex items-center justify-center font-bold animate-pulse">Initializing Interface...</div>;
 
   const currentStageIndex = STAGES.findIndex(s => s.id === c.currentStatus);
   const activeTabIndex = STAGES.findIndex(s => s.id === activeTab);
@@ -2750,188 +3151,459 @@ export default function OfficerResolvePage() {
   const showHistory = (isTabCompleted && activeTab !== getTabForStatus(c.currentStatus)) || (activeTab === 'RESOLVED' && c.currentStatus === 'RESOLVED');
   const historyEvent = showHistory ? getStageHistory(activeTab) : null;
 
+  const historyUrls = historyEvent && (historyEvent.data?.proofUrls || [historyEvent.data?.proofUrl]).filter(Boolean).map((url: string) => `${API}${url}`);
+  const resolvedEvent = c.events?.find((e: any) => e.type === 'RESOLVED');
+  const officerUrls = resolvedEvent?.data?.proofUrls || (resolvedEvent?.data?.proofUrl ? [resolvedEvent.data.proofUrl] : []);
+  const citizenMedia = c.media?.filter((m: any) => !officerUrls.includes(m.url)) || [];
+  const citizenMediaUrls = citizenMedia.map((m: any) => getImgUrl(m.url));
+
+  const sigs = c.signals || [];
+  const nudges = c.nudges?.length || 0;
+  const maxSeverity = sigs.reduce((max: number, s: any) => Math.max(max, s.severity || 1), 1);
+  const isUrgent = maxSeverity === 3 || nudges >= 3;
+
+  // 🔥 NEW: Calculate Live Distance
+  const distanceKm = (officerLiveLoc && c.lat && c.lng) ? calculateDistance(officerLiveLoc.lat, officerLiveLoc.lng, c.lat, c.lng) : null;
+  const distanceText = distanceKm !== null ? (distanceKm < 1 ? `${Math.round(distanceKm * 1000)}m away` : `${distanceKm.toFixed(1)}km away`) : null;
+
   return (
-    <main className="min-h-screen bg-black text-zinc-200 font-sans pb-20">
-      <nav className="sticky top-0 z-20 bg-black/80 backdrop-blur-md border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
-        <Link href="/officer" className="flex items-center gap-2 text-zinc-400 hover:text-white transition">
-          <ArrowLeft size={18} /> <span className="font-medium text-sm">Back</span>
+    <main className="min-h-screen bg-black text-zinc-200 font-sans pb-24">
+      
+      {/* 🚀 NAVBAR */}
+      <nav className="sticky top-0 z-40 bg-black/80 backdrop-blur-md border-b border-zinc-800 px-4 sm:px-8 py-3 flex items-center justify-between">
+        <Link href="/officer" className="group flex items-center gap-2 text-zinc-400 hover:text-white transition">
+          <div className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 group-hover:bg-zinc-700 transition">
+            <ArrowLeft size={16} />
+          </div>
+          <span className="font-bold text-sm hidden sm:inline">Back to Console</span>
         </Link>
-        <div className="text-[10px] sm:text-xs font-bold text-zinc-500 uppercase tracking-widest">{c.id.slice(0, 8)}</div>
+        <div className="flex items-center gap-3">
+          {isUrgent && <span className="flex items-center gap-1.5 px-3 py-1 bg-red-500/10 border border-red-500/20 text-red-400 text-[10px] font-bold uppercase tracking-widest rounded-full animate-pulse"><Flame size={12} /> Priority</span>}
+          <div className="text-[10px] sm:text-xs font-mono font-bold text-zinc-500 bg-zinc-900 px-3 py-1 rounded-full border border-zinc-800">ID: {c.id.slice(0, 8)}</div>
+        </div>
       </nav>
 
-      <div className="max-w-xl mx-auto p-4 sm:p-6 space-y-6 sm:space-y-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8">
         
-        {/* HEADER */}
-        <header>
-          <h1 className="text-xl sm:text-2xl font-bold text-white mb-2">{c.title}</h1>
-          <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm text-zinc-400">
-            <span className="px-2 py-0.5 rounded bg-blue-900/30 text-blue-400 text-[10px] sm:text-xs font-bold border border-blue-800">{c.category}</span>
-            <span>• {c.ward?.name}</span>
+        {/* HERO HEADER & NAVIGATION STRIP */}
+        <header className="mb-6 sm:mb-8">
+          <h1 className="text-2xl sm:text-4xl font-black text-white mb-3 tracking-tight leading-tight">{c.title}</h1>
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs sm:text-sm text-zinc-400 font-medium">
+            <span className="px-2.5 py-1 rounded-full bg-blue-900/20 text-blue-400 text-[10px] sm:text-xs font-bold border border-blue-800/50 uppercase tracking-wider">{c.category}</span>
+            <span className="flex items-center gap-1"><MapPin size={14} className="text-zinc-500" /> {c.ward?.name}</span>
+            <span className="hidden sm:inline text-zinc-700">•</span>
+            <span className="flex items-center gap-1"><Clock size={14} className="text-zinc-500" /> {new Date(c.createdAt).toLocaleDateString()}</span>
+            
+            {/* 🔥 NEW: LIVE DISTANCE & ROUTING BUTTONS 🔥 */}
+            <div className="flex items-center gap-2 ml-auto w-full sm:w-auto mt-2 sm:mt-0">
+               {distanceText && (
+                  <span className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-900 border border-zinc-700 text-zinc-300 text-xs font-bold rounded-lg shadow-inner shrink-0">
+                    <Navigation size={14} className="text-blue-400" /> {distanceText}
+                  </span>
+               )}
+               {/* Generates a universal Google Maps Directions link */}
+               <a 
+                 href={`https://www.google.com/maps/dir/?api=1&destination=${c.lat},${c.lng}`} 
+                 target="_blank"
+                 rel="noopener noreferrer"
+                 className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg transition shadow-lg shadow-blue-900/20"
+               >
+                 <Map size={14} /> Get Directions
+               </a>
+            </div>
           </div>
         </header>
 
-        {/* RESPONSIVE STEPPER */}
-        <div className="relative pt-2 pb-6 px-1 sm:px-2">
-          {/* Background Track Line */}
-          <div className="absolute top-4 sm:top-5 left-4 sm:left-6 right-4 sm:right-6 h-1 bg-zinc-800 rounded-full" />
-          {/* Active Track Line */}
-          <div 
-            className="absolute top-4 sm:top-5 left-4 sm:left-6 h-1 rounded-full transition-all duration-700 bg-gradient-to-r from-blue-600 to-green-500" 
-            style={{ width: `calc(${progressPercent}% - 32px)` }} 
-          />
-          
-          <div className="relative flex justify-between z-10">
-            {STAGES.map((stage, idx) => {
-              const isCompleted = idx <= currentStageIndex;
-              const isActive = stage.id === activeTab;
-              return (
-                <button 
-                  key={stage.id} 
-                  disabled={idx > currentStageIndex + 1}
-                  onClick={() => { if (idx <= currentStageIndex + 1) setActiveTab(stage.id); }}
-                  className={`flex flex-col items-center gap-1.5 sm:gap-2 group outline-none transition-all ${idx > currentStageIndex + 1 ? 'opacity-40' : ''}`}
-                >
-                  <div className={`
-                    w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center border-2 transition-all 
-                    ${isActive ? 'scale-110 border-blue-400 bg-zinc-900 text-white' : isCompleted ? 'bg-zinc-900 border-green-500 text-green-500' : 'bg-black border-zinc-800 text-zinc-700'}
-                  `}>
-                    <stage.icon className="w-3.5 h-3.5 sm:w-4 sm:h-4" strokeWidth={isActive ? 2.5 : 2} />
-                  </div>
-                  <div className={`text-[9px] sm:text-[10px] font-bold uppercase tracking-wider ${isActive ? 'text-white' : 'text-zinc-600'}`}>
-                    {stage.label}
-                  </div>
-                </button>
-              );
-            })}
+        {/* 🚀 THE VITAL STRIP */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4 mb-6 sm:mb-8">
+          <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-3 sm:p-4 flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${nudges > 0 ? 'bg-orange-500/10 text-orange-500' : 'bg-zinc-800 text-zinc-500'}`}><Flame size={18} /></div>
+            <div>
+              <div className="text-sm sm:text-lg font-black text-white">{nudges}</div>
+              <div className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase">Nudges</div>
+            </div>
+          </div>
+          <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-3 sm:p-4 flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${sigs.some((s:any)=>s.type==='SAFETY_HAZARD') ? 'bg-red-500/10 text-red-500' : 'bg-zinc-800 text-zinc-500'}`}><AlertOctagon size={18} /></div>
+            <div>
+              <div className="text-sm sm:text-lg font-black text-white">{sigs.filter((s:any)=>s.type==='SAFETY_HAZARD').length}</div>
+              <div className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase">Hazards</div>
+            </div>
+          </div>
+          <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-3 sm:p-4 flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${sigs.some((s:any)=>s.type==='TRAFFIC_BLOCKER') ? 'bg-yellow-500/10 text-yellow-500' : 'bg-zinc-800 text-zinc-500'}`}><Car size={18} /></div>
+            <div>
+              <div className="text-sm sm:text-lg font-black text-white">{sigs.filter((s:any)=>s.type==='TRAFFIC_BLOCKER').length}</div>
+              <div className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase">Traffic</div>
+            </div>
+          </div>
+          <div className="bg-zinc-900/40 border border-zinc-800 rounded-xl p-3 sm:p-4 flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500"><Activity size={18} /></div>
+            <div>
+              <div className="text-sm sm:text-lg font-black text-white">{maxSeverity === 1 ? 'LOW' : maxSeverity === 2 ? 'MED' : 'HIGH'}</div>
+              <div className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase">Severity</div>
+            </div>
           </div>
         </div>
 
-        {/* CONTENT AREA */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4 sm:p-6">
-          
-          {/* HISTORY VIEW */}
-          {showHistory && historyEvent && (
-            <div className="space-y-4">
-               <div className="bg-black/40 border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-3">
-                  <div className="flex items-center gap-2 text-[10px] sm:text-xs text-zinc-500 mb-2">
-                     <Clock size={12} /> Completed on {new Date(historyEvent.createdAt).toLocaleString()}
-                  </div>
-                  <div className="text-xs sm:text-sm text-zinc-200">{historyEvent.data?.note}</div>
-                  {/* PROOF IMAGES */}
-                  {(historyEvent.data?.proofUrls || [historyEvent.data?.proofUrl]).filter(Boolean).length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar mt-3">
-                        {(historyEvent.data.proofUrls || [historyEvent.data.proofUrl]).map((url: string, idx: number) => (
-                          <img key={idx} src={`${API}${url}`} className="rounded-lg border border-zinc-700 w-20 h-20 sm:w-24 sm:h-24 object-cover shrink-0" />
-                        ))}
-                      </div>
-                  )}
-               </div>
-               {activeTab !== getTabForStatus(c.currentStatus) && (
-                  <button onClick={() => setActiveTab(getTabForStatus(c.currentStatus))} className="w-full text-center text-xs text-blue-400 hover:text-blue-300 underline p-2">
-                      Return to Active Task &rarr;
-                  </button>
-               )}
-            </div>
-          )}
+        {/* 📱 MOBILE ONLY: SEGMENTED TOGGLE */}
+        <div className="flex lg:hidden bg-zinc-900/60 p-1 rounded-xl mb-6 border border-zinc-800">
+          <button 
+            onClick={() => setMobileView('PROTOCOL')} 
+            className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ${mobileView === 'PROTOCOL' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            ⚡ Action Protocol
+          </button>
+          <button 
+            onClick={() => setMobileView('CONTEXT')} 
+            className={`flex-1 py-2.5 text-xs font-bold rounded-lg transition-all ${mobileView === 'CONTEXT' ? 'bg-zinc-800 text-white shadow-md' : 'text-zinc-500 hover:text-zinc-300'}`}
+          >
+            📁 Issue Context
+          </button>
+        </div>
 
-          {/* ACTIVE FORM */}
-          {!showHistory && (
-             <>
-                {activeTab === 'ASSIGNED' && (
-                  <div className="space-y-4">
-                    <input type="text" value={officerName} onChange={(e) => setOfficerName(e.target.value)} placeholder="Officer Name..." className="w-full bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white outline-none focus:border-blue-500 transition" />
-                    <button onClick={async () => {
-                       if(!officerName) return alert("Name required");
-                       await postAction(`/complaints/${id}/assign`, "PATCH", { officerName });
-                       window.location.reload();
-                    }} className="w-full py-3 sm:py-3.5 bg-blue-600 text-white text-sm font-bold rounded-xl active:scale-95 transition">Confirm Assignment</button>
-                  </div>
-                )}
+        {/* 🚀 MAIN LAYOUT GRID */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start">
 
-                {activeTab === 'INSPECTION' && (
-                   <div className="space-y-4">
-                     <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Observations..." className="w-full h-28 sm:h-32 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-blue-500 transition resize-none"/>
-                     <button onClick={async () => {
-                        await postAction(`/complaints/${id}/advance`, "POST", { nextStatus: 'INSPECTION', note });
-                        window.location.reload();
-                     }} className="w-full py-3 sm:py-3.5 bg-white text-black text-sm font-bold rounded-xl active:scale-95 transition">Start Inspection</button>
-                   </div>
-                )}
+          {/* ========================================================= */}
+          {/* THE HERO: ACTION PROTOCOL */}
+          {/* ========================================================= */}
+          <div className={`lg:col-span-7 xl:col-span-8 ${mobileView === 'PROTOCOL' ? 'block' : 'hidden lg:block'}`}>
+            <div className="bg-gradient-to-b from-zinc-900 to-zinc-950 border border-zinc-800 shadow-2xl rounded-[2rem] p-5 sm:p-8 relative overflow-hidden">
+              
+              <div className={`absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] pointer-events-none opacity-20 ${isUrgent ? 'bg-red-500' : 'bg-blue-500'}`} />
+
+              <h2 className="text-xl sm:text-2xl font-black text-white mb-8 flex items-center gap-3 relative z-10">
+                <ShieldAlert size={24} className={isUrgent ? "text-red-400" : "text-blue-400"} /> System Protocol
+              </h2>
+
+              {/* 1. HORIZONTAL STEPPER */}
+              <div className="relative pt-2 pb-10 px-2 sm:px-4 z-10">
+                <div className="absolute top-5 sm:top-6 left-6 right-6 h-1.5 bg-zinc-950 rounded-full shadow-inner border border-zinc-800/50" />
+                <div 
+                  className="absolute top-5 sm:top-6 left-6 h-1.5 rounded-full transition-all duration-700 bg-gradient-to-r from-blue-600 to-green-500 shadow-[0_0_15px_rgba(37,99,235,0.4)]" 
+                  style={{ width: `calc(${progressPercent}% - 48px)` }} 
+                />
                 
-                {activeTab === 'WORK_IN_PROGRESS' && (
-                   <div className="space-y-4">
-                     <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Work details..." className="w-full h-28 sm:h-32 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white focus:border-amber-500 transition resize-none"/>
-                     <button onClick={async () => {
-                        await postAction(`/complaints/${id}/advance`, "POST", { nextStatus: 'WORK_IN_PROGRESS', note });
-                        window.location.reload();
-                     }} className="w-full py-3 sm:py-3.5 bg-amber-600 text-white text-sm font-bold rounded-xl active:scale-95 transition">Start Work</button>
-                   </div>
-                )}
-
-                {/* RESOLVED FORM */}
-                {activeTab === 'RESOLVED' && (
-                  <div className="space-y-5">
-                    <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Final resolution notes..." className="w-full h-24 bg-black border border-zinc-700 rounded-xl p-3 text-sm text-white outline-none focus:border-green-500 transition resize-none" />
-                    
-                    {/* 1. FILE UPLOAD */}
-                    <div className="space-y-2">
-                        <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 no-scrollbar">
-                          {files.map((f, i) => (
-                            <div key={i} className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 border border-zinc-700 rounded-xl overflow-hidden group">
-                               <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" />
-                               <button onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-black/60 text-white rounded-full p-1"><X size={12}/></button>
-                            </div>
-                          ))}
-                          {files.length < 5 && (
-                              <div className="relative w-16 h-16 sm:w-20 sm:h-20 shrink-0 border-2 border-dashed border-zinc-700 rounded-xl flex flex-col items-center justify-center bg-black/30 hover:bg-zinc-900/50 cursor-pointer transition">
-                                  <input type="file" multiple accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
-                                  <Plus size={20} className="text-zinc-500" />
-                              </div>
-                          )}
+                <div className="relative flex justify-between z-10">
+                  {STAGES.map((stage, idx) => {
+                    const isCompleted = idx <= currentStageIndex;
+                    const isActive = stage.id === activeTab;
+                    return (
+                      <button 
+                        key={stage.id} 
+                        disabled={idx > currentStageIndex + 1}
+                        onClick={() => { if (idx <= currentStageIndex + 1) setActiveTab(stage.id); }}
+                        className={`flex flex-col items-center gap-2 group outline-none transition-all ${idx > currentStageIndex + 1 ? 'opacity-30' : ''}`}
+                      >
+                        <div className={`
+                          w-10 h-10 sm:w-12 sm:h-12 rounded-full flex items-center justify-center border-2 transition-all shadow-lg
+                          ${isActive ? 'scale-110 border-blue-400 bg-blue-950 text-blue-400 shadow-blue-900/50' : isCompleted ? 'bg-green-950 border-green-500 text-green-400' : 'bg-black border-zinc-800 text-zinc-600'}
+                        `}>
+                          <stage.icon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={isActive ? 2.5 : 2} />
                         </div>
-                    </div>
+                        <div className={`text-[9px] sm:text-[10px] font-black uppercase tracking-wider ${isActive ? 'text-white' : 'text-zinc-600'}`}>
+                          {stage.label}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
 
-                    {/* 2. COMPULSORY LOCATION BUTTON */}
-                    <div className="bg-black/30 border border-zinc-800 rounded-xl p-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                        <div className="flex items-center gap-3 w-full">
-                           <div className={`p-2 rounded-full shrink-0 ${locStatus === 'success' ? 'bg-green-900/30 text-green-400' : 'bg-zinc-800 text-zinc-500'}`}>
-                              <LocateFixed size={18} className="sm:w-5 sm:h-5" />
-                           </div>
-                           <div className="min-w-0 flex-1">
-                              <p className="font-medium text-xs sm:text-sm text-zinc-300">Geo-tagging</p>
-                              <p className="text-[10px] sm:text-xs text-zinc-500 truncate">
-                                {locStatus === 'idle' && "Required for closure"}
-                                {locStatus === 'loading' && "Fetching location..."}
-                                {locStatus === 'success' && "Location Locked ✅"}
-                                {locStatus === 'error' && "Location Failed ❌"}
-                              </p>
-                           </div>
+              {/* 2. DYNAMIC WORKFLOW FORMS */}
+              <div className="pt-2 relative z-10">
+                
+                {/* HISTORY VIEW */}
+                {showHistory && historyEvent && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+                     <div className="bg-black/60 border border-zinc-800 rounded-2xl p-5 sm:p-6 space-y-4">
+                        <div className="flex items-center gap-2 text-xs font-bold text-zinc-500 uppercase tracking-wider mb-2">
+                           <Clock size={14} /> Completed {new Date(historyEvent.createdAt).toLocaleDateString()}
+                        </div>
+                        <div className="text-sm text-zinc-300 bg-zinc-900/50 p-4 rounded-xl border border-zinc-800/50">
+                          {historyEvent.data?.note || "No notes provided."}
                         </div>
                         
-                        {locStatus !== 'success' && (
-                          <button 
-                            onClick={handleGetLocation} 
-                            disabled={locStatus === 'loading'}
-                            className="w-full sm:w-auto px-4 py-2 sm:px-3 sm:py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-lg disabled:opacity-50 transition shrink-0"
-                          >
-                            {locStatus === 'loading' ? '...' : 'Tag Location'}
-                          </button>
+                        {historyUrls && historyUrls.length > 0 && (
+                           <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar mt-4">
+                             {historyUrls.map((url: string, idx: number) => (
+                               <img 
+                                 key={idx} 
+                                 src={url} 
+                                 className="rounded-xl border border-zinc-700 w-24 h-24 sm:w-32 sm:h-32 object-cover shrink-0 shadow-md cursor-pointer hover:opacity-80 transition" 
+                                 onClick={() => setLightbox({ urls: historyUrls, index: idx })}
+                               />
+                             ))}
+                           </div>
                         )}
-                    </div>
-
-                    <button 
-                      onClick={resolveJob} 
-                      disabled={submitting || files.length === 0 || locStatus !== 'success'} 
-                      className="w-full py-3 sm:py-3.5 bg-green-600 hover:bg-green-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white text-sm font-bold rounded-xl transition active:scale-95"
-                    >
-                      {submitting ? "Closing..." : "Close Ticket"}
-                    </button>
+                     </div>
+                     {activeTab !== getTabForStatus(c.currentStatus) && (
+                        <button onClick={() => setActiveTab(getTabForStatus(c.currentStatus))} className="w-full text-center text-xs sm:text-sm font-bold text-blue-400 hover:text-blue-300 uppercase tracking-widest p-3 transition bg-blue-500/5 hover:bg-blue-500/10 rounded-xl border border-blue-500/20">
+                            Return to Active Protocol &rarr;
+                        </button>
+                     )}
                   </div>
                 )}
-             </>
-          )}
+
+                {/* ACTIVE FORMS */}
+                {!showHistory && (
+                   <div className="animate-in fade-in slide-in-from-right-4 duration-300">
+                      
+                      {/* ASSIGN FORM */}
+                      {activeTab === 'ASSIGNED' && (
+                        <div className="space-y-4 sm:space-y-5">
+                          <div>
+                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Officer In Charge</label>
+                            <input type="text" value={officerName} onChange={(e) => setOfficerName(e.target.value)} placeholder="Enter Full Name..." className="w-full bg-black/50 border border-zinc-700 rounded-xl p-4 sm:p-5 text-sm sm:text-base text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition shadow-inner" />
+                          </div>
+                          <button onClick={async () => {
+                             if(!officerName) return alert("Name required");
+                             await postAction(`/complaints/${id}/assign`, "PATCH", { officerName });
+                             window.location.reload();
+                          }} className="w-full py-4 sm:py-5 bg-blue-600 hover:bg-blue-500 text-white text-sm sm:text-base font-bold rounded-xl active:scale-95 transition shadow-lg shadow-blue-900/30">
+                            Confirm Assignment
+                          </button>
+                        </div>
+                      )}
+
+                      {/* INSPECTION FORM */}
+                      {activeTab === 'INSPECTION' && (
+                         <div className="space-y-4 sm:space-y-5">
+                           <div>
+                             <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Initial Assessment</label>
+                             <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="Enter observations from the site..." className="w-full h-32 sm:h-40 bg-black/50 border border-zinc-700 rounded-xl p-4 sm:p-5 text-sm sm:text-base text-white focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition resize-none shadow-inner"/>
+                           </div>
+                           <button onClick={async () => {
+                              await postAction(`/complaints/${id}/advance`, "POST", { nextStatus: 'INSPECTION', note });
+                              window.location.reload();
+                           }} className="w-full py-4 sm:py-5 bg-white hover:bg-zinc-200 text-black text-sm sm:text-base font-bold rounded-xl active:scale-95 transition shadow-lg shadow-white/10">
+                             Log Inspection
+                           </button>
+                         </div>
+                      )}
+                      
+                      {/* WORK IN PROGRESS FORM */}
+                      {activeTab === 'WORK_IN_PROGRESS' && (
+                         <div className="space-y-4 sm:space-y-5">
+                           <div>
+                             <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Action Plan</label>
+                             <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder="What work is being done? Equipment used?" className="w-full h-32 sm:h-40 bg-black/50 border border-zinc-700 rounded-xl p-4 sm:p-5 text-sm sm:text-base text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition resize-none shadow-inner"/>
+                           </div>
+                           <button onClick={async () => {
+                              await postAction(`/complaints/${id}/advance`, "POST", { nextStatus: 'WORK_IN_PROGRESS', note });
+                              window.location.reload();
+                           }} className="w-full py-4 sm:py-5 bg-amber-600 hover:bg-amber-500 text-white text-sm sm:text-base font-bold rounded-xl active:scale-95 transition shadow-lg shadow-amber-900/30">
+                             Commence Work
+                           </button>
+                         </div>
+                      )}
+
+                      {/* RESOLVE FORM */}
+                      {activeTab === 'RESOLVED' && (
+                        <div className="space-y-5 sm:space-y-6">
+                          <div>
+                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">Resolution Notes</label>
+                            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder="Final notes for the public record..." className="w-full h-28 sm:h-32 bg-black/50 border border-zinc-700 rounded-xl p-4 text-sm text-white outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500 transition resize-none shadow-inner" />
+                          </div>
+                          
+                          <div className="space-y-3">
+                              <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block">Photographic Proof (Required)</label>
+                              <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+                                {files.map((f, i) => (
+                                  <div key={i} className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 border border-zinc-600 rounded-2xl overflow-hidden group shadow-lg">
+                                     <img src={URL.createObjectURL(f)} className="w-full h-full object-cover" />
+                                     <button onClick={() => removeFile(i)} className="absolute top-1 right-1 bg-black/80 backdrop-blur-sm text-white rounded-full p-1.5 hover:bg-red-500 transition"><X size={14}/></button>
+                                  </div>
+                                ))}
+                                {files.length < 5 && (
+                                    <div className="relative w-24 h-24 sm:w-28 sm:h-28 shrink-0 border-2 border-dashed border-zinc-700 rounded-2xl flex flex-col items-center justify-center bg-black/40 hover:bg-zinc-800 cursor-pointer transition">
+                                        <input type="file" multiple accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                                        <Plus size={28} className="text-zinc-500" />
+                                    </div>
+                                )}
+                              </div>
+                          </div>
+
+                          <div>
+                            <label className="text-xs font-bold text-zinc-500 uppercase tracking-wider block mb-2">GPS Verification</label>
+                            <div className={`border rounded-xl sm:rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 transition ${locStatus === 'success' ? 'bg-green-950/30 border-green-900/50' : 'bg-black/40 border-zinc-800'}`}>
+                                <div className="flex items-center gap-3 w-full">
+                                   <div className={`p-2.5 sm:p-3 rounded-xl shrink-0 ${locStatus === 'success' ? 'bg-green-500/20 text-green-400' : 'bg-zinc-800 text-zinc-500'}`}>
+                                      <LocateFixed size={20} />
+                                   </div>
+                                   <div className="min-w-0 flex-1">
+                                      <p className="font-bold text-sm sm:text-base text-zinc-300">Geo-tagging</p>
+                                      <p className="text-[10px] sm:text-xs text-zinc-500 font-mono mt-0.5 truncate">
+                                        {locStatus === 'idle' && "Awaiting lock..."}
+                                        {locStatus === 'loading' && "Acquiring satellites..."}
+                                        {locStatus === 'success' && `Locked: ${gps?.lat.toFixed(4)}, ${gps?.lng.toFixed(4)}`}
+                                        {locStatus === 'error' && "Lock failed ❌"}
+                                      </p>
+                                   </div>
+                                </div>
+                                
+                                {locStatus !== 'success' && (
+                                  <button 
+                                    onClick={handleGetLocation} 
+                                    disabled={locStatus === 'loading'}
+                                    className="w-full sm:w-auto px-5 py-3 sm:py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-sm sm:text-xs font-bold rounded-xl sm:rounded-lg disabled:opacity-50 transition shrink-0 shadow-lg"
+                                  >
+                                    {locStatus === 'loading' ? 'Locating...' : 'Tag Coordinates'}
+                                  </button>
+                                )}
+                            </div>
+                          </div>
+
+                          <button 
+                            onClick={resolveJob} 
+                            disabled={submitting || files.length === 0 || locStatus !== 'success'} 
+                            className="w-full mt-6 py-4 sm:py-5 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 disabled:from-zinc-800 disabled:to-zinc-800 disabled:text-zinc-500 text-white text-sm sm:text-base font-black uppercase tracking-widest rounded-xl transition-all active:scale-95 shadow-[0_0_20px_rgba(16,185,129,0.3)] disabled:shadow-none"
+                          >
+                            {submitting ? "Closing Protocol..." : "Finalize & Close Job"}
+                          </button>
+                        </div>
+                      )}
+                   </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* ========================================================= */}
+          {/* DOSSIER SIDEBAR: (Context & Chat) */}
+          {/* ========================================================= */}
+          <div className={`lg:col-span-5 xl:col-span-4 flex flex-col gap-6 lg:gap-8 ${mobileView === 'CONTEXT' ? 'block' : 'hidden lg:block'}`}>
+            
+            {/* Citizen Description Card */}
+            <div className="bg-zinc-950/50 border border-zinc-800/80 rounded-3xl p-6 lg:p-8">
+              <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                <FileText size={16} className="text-blue-400"/> Issue Description
+              </h3>
+              <p className="text-sm text-zinc-300 leading-relaxed bg-black/60 p-5 rounded-2xl border border-zinc-800/50 shadow-inner">
+                {c.description || "No specific description provided by the citizen."}
+              </p>
+
+              {citizenMediaUrls.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <Camera size={16} className="text-blue-400"/> Evidence Photos
+                  </h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {citizenMediaUrls.map((url: string, idx: number) => (
+                      <div 
+                        key={idx} 
+                        className="relative aspect-square rounded-2xl overflow-hidden border border-zinc-700 shadow-lg group cursor-pointer"
+                        onClick={() => setLightbox({ urls: citizenMediaUrls, index: idx })}
+                      >
+                        <img src={url} className="w-full h-full object-cover group-hover:scale-110 group-hover:opacity-80 transition duration-500" alt="Evidence" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Officer Chat Box */}
+            <div className="bg-zinc-950/50 border border-zinc-800/80 rounded-3xl p-6 lg:p-8 flex flex-col max-h-[600px]">
+              <h3 className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-4 flex items-center gap-2 shrink-0">
+                <MessageSquare size={16} className="text-blue-400"/> Community Intel
+              </h3>
+              
+              <div className="space-y-4 overflow-y-auto pr-2 custom-scrollbar flex-1 mb-4">
+                {c.updates?.length > 0 ? (
+                  c.updates.map((u: any) => {
+                    const isOfficer = u.user?.role === 'OFFICER' || u.user?.role === 'ADMIN';
+                    return (
+                      <div 
+                        key={u.id} 
+                        className={`border rounded-2xl p-4 transition ${isOfficer ? 'bg-amber-500/5 border-amber-500/20 shadow-[0_0_15px_rgba(245,158,11,0.05)]' : 'bg-zinc-900/60 border-zinc-800 hover:bg-zinc-900'}`}
+                      >
+                        <div className="flex justify-between items-center mb-2">
+                          <span className={`text-xs font-bold flex items-center gap-1.5 ${isOfficer ? 'text-amber-400' : 'text-blue-400'}`}>
+                            {isOfficer && <ShieldAlert size={14} className="text-amber-500" />}
+                            {u.user?.name || "Citizen"} {isOfficer && <span className="text-[9px] uppercase tracking-widest opacity-80">(Official)</span>}
+                          </span>
+                          <span className="text-[10px] text-zinc-500 font-mono">{new Date(u.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p className={`text-sm leading-relaxed ${isOfficer ? 'text-amber-100/90' : 'text-zinc-300'}`}>{u.text}</p>
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                     <p className="text-sm text-zinc-500 italic bg-black/40 p-5 rounded-2xl border border-zinc-800/50 text-center w-full">
+                       No community chatter yet.
+                     </p>
+                  </div>
+                )}
+              </div>
+
+              <form onSubmit={handleAddUpdate} className="shrink-0 flex gap-2 pt-4 border-t border-zinc-800/80">
+                <input
+                  type="text"
+                  placeholder="Post official update to citizens..."
+                  value={updateText}
+                  onChange={(e) => setUpdateText(e.target.value)}
+                  disabled={loadingUpdate}
+                  className="flex-1 bg-black border border-zinc-700 rounded-xl px-4 py-3 text-sm text-white focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none transition disabled:opacity-50 shadow-inner"
+                />
+                <button 
+                  type="submit" 
+                  disabled={loadingUpdate || !updateText.trim()} 
+                  className="bg-amber-600 hover:bg-amber-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white px-5 py-3 rounded-xl font-bold transition-all text-sm flex items-center justify-center shadow-[0_0_15px_rgba(217,119,6,0.3)] disabled:shadow-none"
+                >
+                  <Send size={18} />
+                </button>
+              </form>
+            </div>
+
+          </div>
         </div>
       </div>
+
+      {/* 🔥 PREMIUM SLIDESHOW LIGHTBOX 🔥 */}
+      {lightbox && (
+        <div className="fixed inset-0 bg-black/95 backdrop-blur-md z-[9999] flex items-center justify-center p-4 animate-in fade-in zoom-in-95 duration-200" onClick={() => setLightbox(null)}>
+          
+          <button className="absolute top-4 sm:top-8 right-4 sm:right-8 text-white/50 hover:text-white transition bg-black/50 p-2.5 rounded-full hover:bg-white/10 backdrop-blur-md z-50">
+            <X size={24} />
+          </button>
+
+          {lightbox.urls.length > 1 && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index - 1 + lightbox.urls.length) % lightbox.urls.length }); }}
+              className="absolute left-2 sm:left-8 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition bg-black/50 p-3 rounded-full hover:bg-white/10 backdrop-blur-md z-50"
+            >
+              <ChevronLeft size={32} />
+            </button>
+          )}
+
+          <img 
+            key={lightbox.index} 
+            src={lightbox.urls[lightbox.index]} 
+            className="max-w-full max-h-[85vh] sm:max-h-[90vh] rounded-2xl shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-zinc-800 animate-in fade-in duration-300" 
+            onClick={(e) => e.stopPropagation()} 
+            alt="Enlarged Evidence"
+          />
+
+          {lightbox.urls.length > 1 && (
+            <button 
+              onClick={(e) => { e.stopPropagation(); setLightbox({ ...lightbox, index: (lightbox.index + 1) % lightbox.urls.length }); }}
+              className="absolute right-2 sm:right-8 top-1/2 -translate-y-1/2 text-white/50 hover:text-white transition bg-black/50 p-3 rounded-full hover:bg-white/10 backdrop-blur-md z-50"
+            >
+              <ChevronRight size={32} />
+            </button>
+          )}
+
+          {lightbox.urls.length > 1 && (
+            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/50 px-4 py-1.5 rounded-full text-white/80 text-sm font-bold tracking-widest backdrop-blur-md border border-white/10">
+              {lightbox.index + 1} / {lightbox.urls.length}
+            </div>
+          )}
+        </div>
+      )}
+
     </main>
   );
 }
