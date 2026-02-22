@@ -1,6 +1,6 @@
 @import "tailwindcss";
-/* 
-:root {
+
+/* :root {
   --background: #ffffff;
   --foreground: #171717;
 }
@@ -25,8 +25,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 } */
 
-
- /* gemini */
+/* gemini */
 
 @tailwind base;
 @tailwind components;
@@ -42,21 +41,28 @@ body {
   background: var(--background);
 }
 
-/* Custom Scrollbar for the dark vibe */
-::-webkit-scrollbar {
-  width: 8px;
+/* --- PREMIUM GLOBAL & CUSTOM SCROLLBAR --- */
+::-webkit-scrollbar, .custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
 }
-::-webkit-scrollbar-track {
-  background: #18181b; 
+::-webkit-scrollbar-track, .custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent; 
 }
-::-webkit-scrollbar-thumb {
-  background: #3f3f46; 
-  border-radius: 4px;
+::-webkit-scrollbar-thumb, .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1); 
+  border-radius: 10px;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #52525b; 
+::-webkit-scrollbar-thumb:hover, .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 0.4); /* Smooth blue glow */
+}
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
 }
 
+
+/* --- LEAFLET MAP & ANIMATIONS (PRESERVED) --- */
 .marker-cluster-small,
 .marker-cluster-medium,
 .marker-cluster-large {

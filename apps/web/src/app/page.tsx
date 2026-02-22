@@ -1212,6 +1212,8 @@
 //     </main>
 //   );
 // }
+
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -1220,7 +1222,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 
 import { Map, Plus, Shield, LogOut, Activity, CheckCircle2, Clock, Trophy, ArrowRight, Globe, Camera, Navigation } from "lucide-react";
-
+import PremiumLoader from "@/components/common/PremiumLoader";
 
 export default function Home() {
   const router = useRouter();
@@ -1377,14 +1379,15 @@ export default function Home() {
     router.push("/login");
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-zinc-500 font-medium tracking-widest uppercase text-sm">Initializing Hub...</p>
-      </div>
-    </div>
-  );
+  // if (loading) return (
+  //   <div className="min-h-screen bg-black flex items-center justify-center">
+  //     <div className="flex flex-col items-center gap-4">
+  //       <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+  //       <p className="text-zinc-500 font-medium tracking-widest uppercase text-sm">Initializing Hub...</p>
+  //     </div>
+  //   </div>
+  // );
+  if (loading) return <PremiumLoader />;
 
   return (
     <main className="min-h-screen bg-black font-sans relative overflow-hidden">
