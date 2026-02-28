@@ -47,31 +47,55 @@ async function bootstrap() {
   //   credentials: true,
   // });
 
-  const allowedOrigins = [
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
-    'http://10.149.72.136:3000',
-    'https://civicloop.app',        // production
-    'https://www.civicloop.app',    // production
-    'https://civicloop-web.vercel.app',
-    'http://civicloop.in',
-    'http://www.civicloop.in',
-    'https://staging.civicloop.app' // optional
+  // const allowedOrigins = [
+  //   'http://localhost:3000',
+  //   'http://127.0.0.1:3000',
+  //   'http://10.149.72.136:3000',
+  //   'https://civicloop.app',        // production
+  //   'https://www.civicloop.app',    // production
+  //   'https://civicloop-web.vercel.app',
+  //   'http://civicloop.in',
+  //   'http://www.civicloop.in',
+  //   'https://staging.civicloop.app' // optional
     
-  ];
+  // ];
+
+  // app.enableCors({
+  //   origin: (origin, callback) => {
+  //     if (!origin) return callback(null, true); // allow Postman, curl, mobile apps
+
+  //     if (allowedOrigins.includes(origin)) {
+  //       return callback(null, true);
+  //     }
+
+  //     return callback(new Error('CORS blocked: ' + origin), false);
+  //   },
+  //   credentials: true,
+  // });
 
   app.enableCors({
-    origin: (origin, callback) => {
-      if (!origin) return callback(null, true); // allow Postman, curl, mobile apps
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+    const allowed = [
+      'civicloop.in',
+      'www.civicloop.in',
+      'civicloop-web.vercel.app',
+      'localhost'
+    ];
 
-      return callback(new Error('CORS blocked: ' + origin), false);
-    },
-    credentials: true,
-  });
+    const isAllowed = allowed.some(domain =>
+      origin.includes(domain)
+    );
+
+    if (isAllowed) {
+      return callback(null, true);
+    }
+
+    return callback(null, false); // DO NOT throw error
+  },
+  credentials: true,
+});
 
 
   app.useGlobalPipes(
