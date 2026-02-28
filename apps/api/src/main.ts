@@ -54,7 +54,10 @@ async function bootstrap() {
     'https://civicloop.app',        // production
     'https://www.civicloop.app',    // production
     'https://civicloop-web.vercel.app',
+    'https://civicloop.in',
+    'https://www.civicloop.in',
     'https://staging.civicloop.app' // optional
+    
   ];
 
   app.enableCors({
